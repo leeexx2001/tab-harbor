@@ -55,49 +55,29 @@
     <!-- RIGHT RAIL: greeting + date -->
     <header class="page-header">
       <div class="header-left">
-        <!-- "Good afternoon" — written by getGreeting() in app.js -->
-        <h1 id="greeting"></h1>
-        <!-- "Friday, April 4, 2026" — written by getDateDisplay() in app.js -->
-        <div class="date" id="dateDisplay"></div>
-        <div class="header-controls" id="themeControls">
-          <button class="header-theme-trigger" id="themeMenuTrigger" data-action="toggle-theme-menu" aria-expanded="false" aria-controls="themeMenuPanel">
-            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.75" stroke="currentColor" aria-hidden="true">
-              <path stroke-linecap="round" stroke-linejoin="round" d="M4.5 7.5h15m-12 4.5h9m-6 4.5h3" />
-              <circle cx="7.5" cy="7.5" r="1.5" fill="currentColor" stroke="none" />
-              <circle cx="16.5" cy="12" r="1.5" fill="currentColor" stroke="none" />
-              <circle cx="10.5" cy="16.5" r="1.5" fill="currentColor" stroke="none" />
-            </svg>
-          </button>
-          <div class="theme-menu" id="themeMenuPanel" hidden>
-            <div class="theme-menu-section">
-              <div class="theme-menu-label">Theme Color</div>
-              <div class="theme-options" id="themeOptions"></div>
-            </div>
-            <div class="theme-menu-section">
-              <div class="theme-menu-label">Background</div>
-              <div class="theme-menu-actions">
-                <button class="theme-menu-action" data-action="open-background-picker">Upload image</button>
-                <button class="theme-menu-action is-secondary" data-action="clear-custom-background">Clear</button>
-              </div>
-            </div>
-            <div class="theme-menu-section">
-              <div class="theme-menu-row">
-                <div class="theme-menu-label">Transparency</div>
-                <div class="theme-range-value" id="themeTransparencyValue">14%</div>
-              </div>
-              <input
-                class="theme-range"
-                id="themeTransparencyRange"
-                type="range"
-                min="8"
-                max="60"
-                step="1"
-                value="14"
-              >
-            </div>
-            <input type="file" id="themeBackgroundInput" accept="image/*" hidden>
-          </div>
+        <div class="header-title-row">
+          <!-- "Good afternoon" — written by getGreeting() in app.js -->
+          <h1 id="greeting"></h1>
+          <!-- "Friday, April 4, 2026" — written by getDateDisplay() in app.js -->
+          <div class="date" id="dateDisplay"></div>
         </div>
+        <form class="header-search" id="headerSearchForm">
+          <label class="header-search-label" for="headerSearchInput">Search the web</label>
+          <div class="header-search-shell">
+            <svg class="header-search-icon" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.8" stroke="currentColor" aria-hidden="true">
+              <path stroke-linecap="round" stroke-linejoin="round" d="m21 21-4.35-4.35m1.85-5.15a7 7 0 1 1-14 0 7 7 0 0 1 14 0Z" />
+            </svg>
+            <input
+              class="header-search-input"
+              id="headerSearchInput"
+              type="search"
+              name="q"
+              placeholder="Search with your default engine..."
+              autocomplete="off"
+              spellcheck="false"
+            >
+          </div>
+        </form>
         <section class="quick-tabs" id="quickTabsSection">
           <div class="quick-tabs-grid" id="quickTabsList"></div>
         </section>
@@ -230,7 +210,7 @@
       </div>
     </div>
     <div class="last-refresh">
-      <span style="color: var(--muted); font-size: 11px;"><a href="https://github.com/zarazhangrui/tab-harbor" target="_top" style="color: var(--muted); text-decoration: underline; text-underline-offset: 2px;">Tab Harbor</a> by <a href="https://x.com/zarazhangrui" target="_top" style="color: var(--muted); text-decoration: underline; text-underline-offset: 2px;">Zara</a></span>
+      <span class="footer-credit"><a class="footer-credit-link" href="https://github.com/V-IOLE-T/tab-harbor" target="_top">Tab Harbor</a> by <a class="footer-credit-link" href="https://github.com/V-IOLE-T" target="_top">OO</a></span>
     </div>
   </footer>
 

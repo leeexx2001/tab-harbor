@@ -1,91 +1,96 @@
 # Tab Harbor
 
-**Keep tabs on your tabs.**
+[English](README.md) | [简体中文](README.zh-CN.md)
 
-Tab Harbor is a Chrome extension that replaces your new tab page with a dashboard of everything you have open. Tabs are grouped by domain, with homepages (Gmail, X, LinkedIn, etc.) pulled into their own group. Close tabs with a satisfying swoosh + confetti.
+**A new tab dashboard for organizing open tabs, quick links, todos, and saved reads in one calm workspace.**
 
-No server. No account. No external API calls. Just a Chrome extension.
+Tab Harbor turns Chrome's new tab page into something you can actually work from. Instead of opening one more empty tab and immediately getting lost again, you land in a quiet dashboard that shows what is already open, what should be saved for later, and what still needs your attention.
 
----
+It is built for the kind of browsing that turns into research, shipping, side quests, and thirty tabs you swear are all still useful.
 
-## Install with a coding agent
+## ✨ Preview
 
-Send your coding agent (Claude Code, Codex, etc.) this repo and say **"install this"**:
+Here is the main dashboard view, with open tabs grouped into readable stacks instead of one endless strip.
 
-```
-https://github.com/zarazhangrui/tab-harbor
-```
+![Tab Harbor overview](assets/readme/overview.png)
 
-The agent will walk you through it. Takes about 1 minute.
+And here is the side drawer for saved reads, where pages can sit for later without getting buried forever.
 
----
+![Tab Harbor drawer](assets/readme/drawer.png)
 
-## Features
+## 🌊 Why Tab Harbor
 
-- **See all your tabs at a glance** on a clean grid, grouped by domain
-- **Homepages group** pulls Gmail inbox, X home, YouTube, LinkedIn, GitHub homepages into one card
-- **Close tabs with style** with swoosh sound + confetti burst
-- **Duplicate detection** flags when you have the same page open twice, with one-click cleanup
-- **Click any tab to jump to it** across windows, no new tab opened
-- **Save for later** bookmark tabs to a checklist before closing them
-- **Localhost grouping** shows port numbers next to each tab so you can tell your vibe coding projects apart
-- **Expandable groups** show the first 8 tabs with a clickable "+N more"
-- **100% local** your data never leaves your machine
-- **Pure Chrome extension** no server, no Node.js, no npm, no setup beyond loading the extension
+Most new tab pages try to be a search box, a wallpaper, or a speed dial. Tab Harbor is closer to a lightweight control room. It keeps the messy reality of browsing visible, but turns it into something calmer: domains are grouped, homepage tabs are pulled into their own space, duplicates are easy to spot, and the “I need this, just not right now” pages finally have a home.
 
----
+It also goes beyond tab cleanup. You can keep a row of quick links for the pages you open constantly, manage a small todo list without leaving the tab page, and build a read-later queue that feels closer to a working inbox than a pile of forgotten bookmarks.
 
-## Manual Setup
+## 🧭 Features
 
-**1. Clone the repo**
+- Group open tabs by domain so related pages stay together automatically
+- Pull homepage tabs like GitHub, YouTube, LinkedIn, X, and similar entry pages into a dedicated Homepages group
+- Jump to any open tab directly from the dashboard without opening duplicates
+- Detect duplicate pages and clean them up with one click
+- Detect duplicate Tab Harbor tabs and close the extras from the top banner
+- Save pages for later before closing them, then revisit them from the side drawer
+- Archive saved pages after you are done with them
+- Search saved pages and archived items from inside the drawer
+- Create and manage todos directly from the new tab page
+- Archive completed todos while keeping active work visible
+- Search todos and open a simple detail view for longer notes
+- Add quick links for the pages you open all the time
+- Show localhost tabs with port numbers so local projects are easier to tell apart
+- Expand large groups without losing the clean overview
+- Create manual groups and move tabs into them when domain-based grouping is not enough
+- Reorder groups from the top nav so your workflow stays in the order you want
+- Reorder saved pages and todos inside the drawer
+- Switch themes, change transparency, and use a custom background image
+- Keep everything local with no server, no account, and no external API dependency
 
-```bash
-git clone https://github.com/zarazhangrui/tab-harbor.git
-```
+## ⚡ Quick Use
 
-**2. Load the Chrome extension**
+### Install with a coding agent
 
-1. Open Chrome and go to `chrome://extensions`
-2. Enable **Developer mode** (top-right toggle)
-3. Click **Load unpacked**
-4. Navigate to the `extension/` folder inside the cloned repo and select it
+1. Give your coding agent this repo:
 
-**3. Open a new tab**
+   ```text
+   https://github.com/V-IOLE-T/tab-harbor
+   ```
 
-You'll see Tab Harbor.
+2. Ask it to install the extension.
+3. Open a new tab in Chrome.
 
----
+### Install manually
 
-## How it works
+1. Clone this repo:
 
-```
-You open a new tab
-  -> Tab Harbor shows your open tabs grouped by domain
-  -> Homepages (Gmail, X, etc.) get their own group at the top
-  -> Click any tab title to jump to it
-  -> Close groups you're done with (swoosh + confetti)
-  -> Save tabs for later before closing them
-```
+   ```bash
+   git clone https://github.com/V-IOLE-T/tab-harbor.git
+   ```
 
-Everything runs inside the Chrome extension. No external server, no API calls, no data sent anywhere. Saved tabs are stored in `chrome.storage.local`.
+2. Open `chrome://extensions`
+3. Turn on **Developer mode**
+4. Click **Load unpacked**
+5. Select the [`extension/`](extension/) folder
+6. Open a new tab
 
----
+## 🪴 What It Feels Like
 
-## Tech stack
+A good session in Tab Harbor feels less like “tab management” and more like having your browser desk cleaned up just enough to think again. Your working tabs stay visible, your future-reading pile moves to the side instead of disappearing, and the next action is usually one click away.
 
-| What | How |
-|------|-----|
-| Extension | Chrome Manifest V3 |
-| Storage | chrome.storage.local |
-| Sound | Web Audio API (synthesized, no files) |
-| Animations | CSS transitions + JS confetti particles |
+That is also why the extension tries to stay lightweight. There is no sync story to set up, no backend to trust, and no extra app to open. It lives where the mess already happens.
 
----
+## 🔒 Fully Local
 
-## License
+Tab Harbor runs entirely inside the extension. Open tabs are read directly from Chrome, and your saved pages, todos, quick links, theme settings, and layout preferences stay on your machine through `chrome.storage.local`.
 
-MIT
+If you publish this repo for other people, they get the code and assets, not your personal browsing data.
 
----
+## 🛠️ Under the Hood
 
-Built by [Zara](https://x.com/zarazhangrui)
+This is a Manifest V3 Chrome extension with a plain frontend stack and no build step required to use it. The interface is driven by browser APIs, local storage, and a small amount of animation polish for actions like cleanup and closing flows.
+
+That means you can clone it, load it, and start using it without npm, without a dev server, and without standing up anything else.
+
+## 📄 License
+
+MIT.

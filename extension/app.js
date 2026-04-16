@@ -71,6 +71,8 @@ let sessionGroupsState = normalizeSessionGroups ? normalizeSessionGroups() : { g
 const SESSION_GROUPS_KEY = 'sessionGroups';
 let groupOrderState = normalizeGroupOrderState ? normalizeGroupOrderState() : { sessionOrder: [], pinnedOrder: [], pinEnabled: false };
 const GROUP_ORDER_KEY = 'groupOrder';
+let groupTabOrderState = {};
+const GROUP_TAB_ORDER_KEY = 'groupTabOrder';
 let draggedGroupId = '';
 let dragStartPoint = null;
 let suppressJumpUntil = 0;
@@ -91,6 +93,10 @@ let draggedDrawerItemId = '';
 let draggedDrawerItemEl = null;
 let drawerItemDragState = null;
 let drawerItemPlaceholderEl = null;
+let draggedPageChipId = '';
+let draggedPageChipEl = null;
+let pageChipDragState = null;
+let pageChipPlaceholderEl = null;
 let themeMenuOpen = false;
 const TODOS_KEY = 'todos';
 const THEME_PREFERENCES_KEY = 'themePreferences';
@@ -109,6 +115,10 @@ const THEMES = {
       '--accent-sage': '#5a7a62',
       '--accent-slate': '#5a6b7a',
       '--accent-rose': '#b35a5a',
+      '--workspace-accent': '#8a653f',
+      '--workspace-accent-soft': '#f2e7db',
+      '--workspace-accent-border': '#d4b396',
+      '--workspace-accent-contrast': '#fffaf5',
       '--status-active': '#3d7a4a',
       '--status-cooling': '#b8892e',
       '--status-abandoned': '#b35a5a',
@@ -127,6 +137,10 @@ const THEMES = {
       '--accent-sage': '#4d6f57',
       '--accent-slate': '#5e7072',
       '--accent-rose': '#9a6860',
+      '--workspace-accent': '#4f7657',
+      '--workspace-accent-soft': '#deebe1',
+      '--workspace-accent-border': '#9ebda6',
+      '--workspace-accent-contrast': '#f6fbf7',
       '--status-active': '#446953',
       '--status-cooling': '#907548',
       '--status-abandoned': '#996760',
@@ -145,6 +159,10 @@ const THEMES = {
       '--accent-sage': '#5d7569',
       '--accent-slate': '#4f687a',
       '--accent-rose': '#9b6b71',
+      '--workspace-accent': '#4f6d88',
+      '--workspace-accent-soft': '#dde7f0',
+      '--workspace-accent-border': '#9fb2c5',
+      '--workspace-accent-contrast': '#f7fafc',
       '--status-active': '#4e6c61',
       '--status-cooling': '#94724a',
       '--status-abandoned': '#93636c',
@@ -163,6 +181,10 @@ const THEMES = {
       '--accent-sage': '#6a7866',
       '--accent-slate': '#64707a',
       '--accent-rose': '#ad6966',
+      '--workspace-accent': '#a5656f',
+      '--workspace-accent-soft': '#f2dfe1',
+      '--workspace-accent-border': '#d2a1a7',
+      '--workspace-accent-contrast': '#fff7f8',
       '--status-active': '#5a7162',
       '--status-cooling': '#9c7448',
       '--status-abandoned': '#a96262',
@@ -252,6 +274,7 @@ function applyThemePreferences() {
 
 function renderThemeMenu() {
   const trigger = document.getElementById('themeMenuTrigger');
+  const pinToggle = document.getElementById('headerPinToggle');
   const panel = document.getElementById('themeMenuPanel');
   const options = document.getElementById('themeOptions');
   const transparencyRange = document.getElementById('themeTransparencyRange');
@@ -262,6 +285,13 @@ function renderThemeMenu() {
   panel.hidden = !themeMenuOpen;
   transparencyRange.value = String(themePreferences.surfaceOpacity);
   transparencyValue.textContent = `${themePreferences.surfaceOpacity}%`;
+  if (pinToggle) {
+    const pinTooltip = groupOrderState.pinEnabled ? 'Pinned order' : 'Pin order';
+    pinToggle.classList.toggle('is-active', groupOrderState.pinEnabled);
+    pinToggle.dataset.tooltip = pinTooltip;
+    pinToggle.setAttribute('aria-label', pinTooltip);
+    pinToggle.setAttribute('aria-pressed', String(groupOrderState.pinEnabled));
+  }
 
   options.innerHTML = Object.entries(THEMES).map(([id, theme]) => `
     <button
@@ -413,6 +443,91 @@ function reorderVisibleItemsByIds(items, orderIds, includeItem) {
   });
 }
 
+function normalizeGroupTabOrderState(input) {
+  if (!input || typeof input !== 'object' || Array.isArray(input)) return {};
+
+  return Object.fromEntries(
+    Object.entries(input)
+      .map(([groupKey, orderIds]) => [
+        String(groupKey),
+        Array.isArray(orderIds)
+          ? [...new Set(orderIds.map(id => String(id)).filter(Boolean))]
+          : [],
+      ])
+      .filter(([, orderIds]) => orderIds.length > 0)
+  );
+}
+
+function pruneGroupTabOrderState(state, groups = []) {
+  const normalized = normalizeGroupTabOrderState(state);
+  const groupMap = new Map(
+    groups.map(group => [
+      String(group.domain),
+      new Set(
+        (group.tabs || [])
+          .map(tab => String(tab?.url || ''))
+          .filter(Boolean)
+      ),
+    ])
+  );
+
+  return Object.fromEntries(
+    Object.entries(normalized)
+      .map(([groupKey, orderIds]) => {
+        const validUrls = groupMap.get(String(groupKey));
+        if (!validUrls) return null;
+        const filtered = orderIds.filter(url => validUrls.has(url));
+        return filtered.length > 0 ? [String(groupKey), filtered] : null;
+      })
+      .filter(Boolean)
+  );
+}
+
+async function loadGroupTabOrder(groups = []) {
+  const stored = await chrome.storage.local.get(GROUP_TAB_ORDER_KEY);
+  const nextState = normalizeGroupTabOrderState(stored[GROUP_TAB_ORDER_KEY]);
+  const prunedState = pruneGroupTabOrderState(nextState, groups);
+  groupTabOrderState = prunedState;
+  await chrome.storage.local.set({ [GROUP_TAB_ORDER_KEY]: prunedState });
+  return prunedState;
+}
+
+async function saveGroupTabOrder(nextState) {
+  groupTabOrderState = normalizeGroupTabOrderState(nextState);
+  await chrome.storage.local.set({ [GROUP_TAB_ORDER_KEY]: groupTabOrderState });
+  return groupTabOrderState;
+}
+
+function reorderGroupTabsByStoredUrls(tabs, groupKey) {
+  const orderIds = groupTabOrderState[String(groupKey)] || [];
+  if (!Array.isArray(tabs) || !tabs.length || !orderIds.length) return Array.isArray(tabs) ? tabs.slice() : [];
+
+  const wrappedTabs = tabs.map(tab => ({
+    id: String(tab?.url || ''),
+    tab,
+  }));
+  const subsetUrls = new Set(orderIds);
+  const reordered = reorderVisibleItemsByIds(
+    wrappedTabs,
+    orderIds,
+    item => subsetUrls.has(item.id)
+  );
+  return reordered.map(item => item.tab);
+}
+
+function getOrderedUniqueTabsForGroup(group) {
+  const tabs = Array.isArray(group?.tabs) ? group.tabs : [];
+  const seen = new Set();
+  const uniqueTabs = [];
+  for (const tab of tabs) {
+    const url = String(tab?.url || '');
+    if (!url || seen.has(url)) continue;
+    seen.add(url);
+    uniqueTabs.push(tab);
+  }
+  return reorderGroupTabsByStoredUrls(uniqueTabs, group?.domain);
+}
+
 async function loadDeferredTriggerPosition() {
   const stored = await chrome.storage.local.get(DEFERRED_TRIGGER_POSITION_KEY);
   deferredTriggerPosition = normalizeTriggerPosition(stored[DEFERRED_TRIGGER_POSITION_KEY]);
@@ -502,6 +617,60 @@ async function saveGroupOrder(nextState) {
   groupOrderState = normalizeGroupOrderState(nextState);
   await chrome.storage.local.set({ [GROUP_ORDER_KEY]: groupOrderState });
   return groupOrderState;
+}
+
+function updateGroupNavButtonIcon(groupKey) {
+  const group = domainGroups.find(item => String(item.domain) === String(groupKey));
+  const button = document.querySelector(`.group-nav-button[data-group-id="${CSS.escape(String(groupKey))}"]`);
+  if (!group || !button || !getGroupIcon) return;
+
+  const label = group.domain === '__landing-pages__' ? 'Homepages' : (group.label || friendlyDomain(group.domain));
+  const orderedGroup = {
+    ...group,
+    tabs: getOrderedUniqueTabsForGroup(group),
+  };
+  const iconData = getGroupIcon(orderedGroup, label, 32);
+  const img = button.querySelector('.group-nav-icon');
+  const fallback = button.querySelector('.group-nav-fallback');
+
+  if (img && iconData.src) {
+    img.src = iconData.src;
+    img.setAttribute('onerror', `handleIconError(this, '${iconData.fallbackSrc}')`);
+    img.style.display = '';
+    if (fallback) {
+      fallback.textContent = iconData.fallbackLabel;
+      fallback.style.display = 'none';
+    }
+    return;
+  }
+
+  if (img) img.style.display = 'none';
+  if (fallback) {
+    fallback.textContent = iconData.fallbackLabel;
+    fallback.style.display = '';
+  }
+}
+
+function animatePageChipItems(listEl, previousRects) {
+  listEl?.querySelectorAll('[data-chip-sort-id]').forEach(item => {
+    if (item.classList.contains('is-dragging')) return;
+
+    const key = item.dataset.chipSortId || '';
+    const previousRect = previousRects.get(key);
+    if (!previousRect) return;
+
+    const nextRect = item.getBoundingClientRect();
+    const deltaX = previousRect.left - nextRect.left;
+    const deltaY = previousRect.top - nextRect.top;
+    if (!deltaX && !deltaY) return;
+
+    item.style.transition = 'none';
+    item.style.transform = `translate(${deltaX}px, ${deltaY}px)`;
+    requestAnimationFrame(() => {
+      item.style.transition = 'transform 0.16s ease';
+      item.style.transform = '';
+    });
+  });
 }
 
 function syncGroupOrderState(orderKeys) {
@@ -630,6 +799,79 @@ function clearDrawerItemDragState() {
   }
 
   draggedDrawerItemEl = null;
+}
+
+function ensurePageChipPlaceholder() {
+  if (pageChipPlaceholderEl || !draggedPageChipEl) return pageChipPlaceholderEl;
+
+  pageChipPlaceholderEl = document.createElement('div');
+  pageChipPlaceholderEl.className = 'chip-reorder-placeholder';
+  pageChipPlaceholderEl.style.height = `${draggedPageChipEl.getBoundingClientRect().height}px`;
+  draggedPageChipEl.insertAdjacentElement('afterend', pageChipPlaceholderEl);
+  return pageChipPlaceholderEl;
+}
+
+function clearPageChipDragState() {
+  draggedPageChipId = '';
+  pageChipDragState = null;
+  pageChipPlaceholderEl?.remove();
+  pageChipPlaceholderEl = null;
+  document.body.classList.remove('page-chip-list-dragging');
+
+  if (draggedPageChipEl) {
+    draggedPageChipEl.classList.remove('is-dragging');
+    draggedPageChipEl.style.removeProperty('--drag-left');
+    draggedPageChipEl.style.removeProperty('--drag-top');
+    draggedPageChipEl.style.removeProperty('--drag-width');
+  }
+
+  draggedPageChipEl = null;
+}
+
+function updateDraggedPageChipPosition(clientX, clientY) {
+  if (!draggedPageChipEl || !pageChipDragState) return;
+
+  draggedPageChipEl.style.setProperty('--drag-left', `${clientX - pageChipDragState.offsetX}px`);
+  draggedPageChipEl.style.setProperty('--drag-top', `${clientY - pageChipDragState.offsetY}px`);
+}
+
+function previewPageChipOrder(clientY) {
+  const listEl = pageChipDragState?.listEl;
+  if (!listEl || !draggedPageChipId) return;
+
+  const placeholder = ensurePageChipPlaceholder();
+  const previousRects = new Map();
+  const items = [...listEl.querySelectorAll('[data-chip-sort-id]:not(.is-dragging)')];
+
+  items.forEach(item => {
+    previousRects.set(item.dataset.chipSortId || '', item.getBoundingClientRect());
+  });
+
+  let insertBeforeItem = null;
+  for (const item of items) {
+    const rect = item.getBoundingClientRect();
+    if (clientY < rect.top + rect.height / 2) {
+      insertBeforeItem = item;
+      break;
+    }
+  }
+
+  if (insertBeforeItem) {
+    listEl.insertBefore(placeholder, insertBeforeItem);
+  } else {
+    listEl.appendChild(placeholder);
+  }
+
+  animatePageChipItems(listEl, previousRects);
+}
+
+async function saveGroupTabRowOrder(groupKey, orderUrls) {
+  if (!groupKey || !Array.isArray(orderUrls) || !orderUrls.length) return;
+
+  await saveGroupTabOrder({
+    ...groupTabOrderState,
+    [String(groupKey)]: orderUrls.map(url => String(url)).filter(Boolean),
+  });
 }
 
 function updateDraggedDrawerItemPosition(clientX, clientY) {
@@ -914,6 +1156,22 @@ async function openOrFocusUrl(url) {
   return false;
 }
 
+async function runDefaultSearch(query) {
+  const text = String(query || '').trim();
+  if (!text) return;
+
+  if (chrome.search?.query) {
+    await chrome.search.query({
+      text,
+      disposition: 'CURRENT_TAB',
+    });
+    return;
+  }
+
+  const fallbackUrl = `https://www.google.com/search?q=${encodeURIComponent(text)}`;
+  await chrome.tabs.create({ url: fallbackUrl });
+}
+
 /**
  * closeDuplicateTabs(urls, keepOne)
  *
@@ -1135,7 +1393,7 @@ function renderTodoArchiveItem(todo) {
 function renderTodoListItem(todo, { dragEnabled = true } = {}) {
   const ago = timeAgo(todo.createdAt);
   const dragHandle = dragEnabled
-    ? `<button class="drawer-reorder-handle" type="button" data-drag-handle="todo" aria-label="Drag to reorder todo" title="Drag to reorder">
+    ? `<button class="drawer-reorder-handle" type="button" data-drag-handle="todo" aria-label="Drag to reorder todo">
         ${ICONS.move}
       </button>`
     : '';
@@ -1734,7 +1992,7 @@ function buildOverflowChips(hiddenTabs, urlCounts = {}) {
     const faviconUrl = iconData.sources[0] || '';
     const fallbackUrl = iconData.sources[1] || '';
     const fallbackLabel = getFallbackLabel(label, iconData.hostname);
-    return `<div class="page-chip clickable${chipClass}" data-action="focus-tab" data-tab-url="${safeUrl}" title="${safeTitle}">
+    return `<div class="page-chip clickable${chipClass}" data-action="focus-tab" data-tab-url="${safeUrl}" aria-label="${safeTitle}">
       ${faviconUrl ? `<img class="chip-favicon" src="${faviconUrl}" alt="" onerror="handleIconError(this, '${fallbackUrl}')">` : ''}
       <span class="chip-favicon chip-favicon-fallback"${faviconUrl ? ' style="display:none"' : ''}>${fallbackLabel}</span>
       <span class="chip-text">${label}</span>${dupeTag}
@@ -1799,8 +2057,9 @@ function renderDomainCard(group) {
     if (!seen.has(tab.url)) { seen.add(tab.url); uniqueTabs.push(tab); }
   }
 
-  const visibleTabs = uniqueTabs.slice(0, 8);
-  const extraCount  = uniqueTabs.length - visibleTabs.length;
+  const orderedTabs = getOrderedUniqueTabsForGroup(group);
+  const visibleTabs = orderedTabs.slice(0, 8);
+  const extraCount  = orderedTabs.length - visibleTabs.length;
 
   const pageChips = visibleTabs.map(tab => {
     let label = cleanTitle(smartTitle(stripTitleNoise(tab.title || ''), tab.url), group.domain);
@@ -1814,11 +2073,16 @@ function renderDomainCard(group) {
     const chipClass = count > 1 ? ' chip-has-dupes' : '';
     const safeUrl   = (tab.url || '').replace(/"/g, '&quot;');
     const safeTitle = label.replace(/"/g, '&quot;');
+    const safeSortId = (escapeHtmlAttribute ? escapeHtmlAttribute(tab.url) : tab.url.replace(/"/g, '&quot;'));
+    const safeGroupId = (escapeHtmlAttribute ? escapeHtmlAttribute(group.domain) : String(group.domain).replace(/"/g, '&quot;'));
     const iconData = getIconSources(tab, 16);
     const faviconUrl = iconData.sources[0] || '';
     const fallbackUrl = iconData.sources[1] || '';
     const fallbackLabel = getFallbackLabel(label, iconData.hostname);
-    return `<div class="page-chip clickable${chipClass}" data-action="focus-tab" data-tab-url="${safeUrl}" title="${safeTitle}">
+    return `<div class="page-chip clickable${chipClass}" data-action="focus-tab" data-tab-url="${safeUrl}" data-chip-sort-id="${safeSortId}" data-chip-group-id="${safeGroupId}" aria-label="${safeTitle}">
+      <button class="drawer-reorder-handle chip-reorder-handle" type="button" data-chip-drag-handle="tab" aria-label="Drag to reorder tab">
+        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M8 6h.01M8 12h.01M8 18h.01M16 6h.01M16 12h.01M16 18h.01" /></svg>
+      </button>
       ${faviconUrl ? `<img class="chip-favicon" src="${faviconUrl}" alt="" onerror="handleIconError(this, '${fallbackUrl}')">` : ''}
       <span class="chip-favicon chip-favicon-fallback"${faviconUrl ? ' style="display:none"' : ''}>${fallbackLabel}</span>
       <span class="chip-text">${label}</span>${dupeTag}
@@ -1832,7 +2096,7 @@ function renderDomainCard(group) {
         </button>
       </div>
     </div>`;
-  }).join('') + (extraCount > 0 ? buildOverflowChips(uniqueTabs.slice(8), urlCounts) : '');
+  }).join('') + (extraCount > 0 ? buildOverflowChips(orderedTabs.slice(8), urlCounts) : '');
 
   const closeAllButton = `
     <button class="action-btn close-tabs" data-action="close-domain-tabs" data-domain-id="${stableId}">
@@ -1875,7 +2139,11 @@ function renderGroupNav(group) {
   const stableId = getStableGroupId(group.domain);
   const isLanding = group.domain === '__landing-pages__';
   const label = isLanding ? 'Homepages' : (group.label || friendlyDomain(group.domain));
-  const iconData = getGroupIcon(group, label, 32);
+  const orderedGroup = {
+    ...group,
+    tabs: getOrderedUniqueTabsForGroup(group),
+  };
+  const iconData = getGroupIcon(orderedGroup, label, 32);
   const safeTooltip = escapeHtmlAttribute(label);
 
   return `
@@ -1901,15 +2169,48 @@ function renderGroupNavArea(groups) {
     <div class="group-nav-list">
       ${groups.map(group => renderGroupNav(group)).join('')}
     </div>
-    <button
-      class="group-pin-toggle ${groupOrderState.pinEnabled ? 'is-active' : ''}"
-      data-action="toggle-pin-order"
-      data-tooltip="${pinTooltip}"
-      aria-pressed="${groupOrderState.pinEnabled}"
-      aria-label="${pinTooltip}"
-    >
-      ${ICONS.pin}
-    </button>`;
+    <div class="group-nav-tools">
+      <button class="header-theme-trigger" id="themeMenuTrigger" data-action="toggle-theme-menu" data-tooltip="Theme" aria-label="Theme" aria-expanded="false" aria-controls="themeMenuPanel">
+        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.75" stroke="currentColor" aria-hidden="true">
+          <path stroke-linecap="round" stroke-linejoin="round" d="M4.5 7.5h15m-12 4.5h9m-6 4.5h3" />
+          <circle cx="7.5" cy="7.5" r="1.5" fill="currentColor" stroke="none" />
+          <circle cx="16.5" cy="12" r="1.5" fill="currentColor" stroke="none" />
+          <circle cx="10.5" cy="16.5" r="1.5" fill="currentColor" stroke="none" />
+        </svg>
+      </button>
+      <button class="group-pin-toggle ${groupOrderState.pinEnabled ? 'is-active' : ''}" id="headerPinToggle" data-action="toggle-pin-order" data-tooltip="${pinTooltip}" aria-label="${pinTooltip}" aria-pressed="${groupOrderState.pinEnabled}">
+        ${ICONS.pin}
+      </button>
+      <div class="theme-menu" id="themeMenuPanel" hidden>
+        <div class="theme-menu-section">
+          <div class="theme-menu-label">Theme Color</div>
+          <div class="theme-options" id="themeOptions"></div>
+        </div>
+        <div class="theme-menu-section">
+          <div class="theme-menu-label">Background</div>
+          <div class="theme-menu-actions">
+            <button class="theme-menu-action" data-action="open-background-picker">Upload image</button>
+            <button class="theme-menu-action is-secondary" data-action="clear-custom-background">Clear</button>
+          </div>
+        </div>
+        <div class="theme-menu-section">
+          <div class="theme-menu-row">
+            <div class="theme-menu-label">Transparency</div>
+            <div class="theme-range-value" id="themeTransparencyValue">14%</div>
+          </div>
+          <input
+            class="theme-range"
+            id="themeTransparencyRange"
+            type="range"
+            min="8"
+            max="60"
+            step="1"
+            value="14"
+          >
+        </div>
+        <input type="file" id="themeBackgroundInput" accept="image/*" hidden>
+      </div>
+    </div>`;
 }
 
 
@@ -2041,7 +2342,7 @@ function renderDeferredItem(item) {
   const fallbackLabel = getFallbackLabel(item.title || item.url, iconData.hostname);
   const ago = timeAgo(item.savedAt);
   const dragHandle = !savedSearchQuery.trim()
-    ? `<button class="drawer-reorder-handle" type="button" data-drag-handle="saved" aria-label="Drag to reorder saved page" title="Drag to reorder">
+    ? `<button class="drawer-reorder-handle" type="button" data-drag-handle="saved" aria-label="Drag to reorder saved page">
         ${ICONS.move}
       </button>`
     : '';
@@ -2261,6 +2562,7 @@ async function renderStaticDashboard() {
     return b.tabs.length - a.tabs.length;
   });
   domainGroups = applyGroupOrder([...manualGroups, ...automaticGroups], groupOrderState);
+  await loadGroupTabOrder(domainGroups);
 
   // --- Render domain cards ---
   const openTabsSection      = document.getElementById('openTabsSection');
@@ -2339,6 +2641,7 @@ function updateBackToTopVisibility() {
    ---------------------------------------------------------------- */
 
 document.addEventListener('click', async (e) => {
+  if (e.target.closest('.chip-reorder-handle')) return;
   // Walk up the DOM to find the nearest element with data-action
   const actionEl = e.target.closest('[data-action]');
   if (!actionEl) return;
@@ -2985,10 +3288,34 @@ document.addEventListener('click', async (e) => {
 });
 
 document.addEventListener('pointerdown', (e) => {
-  const handle = e.target.closest('.drawer-reorder-handle');
-  if (!handle || e.button !== 0) return;
+  const chipHandle = e.target.closest('[data-chip-drag-handle="tab"]');
+  if (chipHandle && e.button === 0) {
+    const item = chipHandle.closest('[data-chip-sort-id]');
+    const listEl = item?.parentElement;
+    const groupKey = item?.dataset.chipGroupId || '';
+    if (!item || !listEl || !groupKey) return;
 
-  const item = handle.closest('[data-drawer-sort-id]');
+    e.preventDefault();
+    draggedPageChipId = item.dataset.chipSortId || '';
+    draggedPageChipEl = item;
+
+    const rect = item.getBoundingClientRect();
+    pageChipDragState = {
+      groupKey,
+      listEl,
+      x: e.clientX,
+      y: e.clientY,
+      offsetX: e.clientX - rect.left,
+      offsetY: e.clientY - rect.top,
+      moved: false,
+    };
+    return;
+  }
+
+  const drawerHandle = e.target.closest('.drawer-reorder-handle');
+  if (!drawerHandle || e.button !== 0) return;
+
+  const item = drawerHandle.closest('[data-drawer-sort-id]');
   const listEl = item?.parentElement;
   const kind = item?.dataset.drawerSortKind || '';
   if (!item || !listEl || !kind) return;
@@ -3010,6 +3337,23 @@ document.addEventListener('pointerdown', (e) => {
 });
 
 document.addEventListener('pointermove', (e) => {
+  if (draggedPageChipId && pageChipDragState) {
+    const distance = Math.hypot(e.clientX - pageChipDragState.x, e.clientY - pageChipDragState.y);
+    if (!pageChipDragState.moved && distance >= 4) {
+      pageChipDragState.moved = true;
+      document.body.classList.add('page-chip-list-dragging');
+      draggedPageChipEl?.classList.add('is-dragging');
+      draggedPageChipEl?.style.setProperty('--drag-width', `${draggedPageChipEl.getBoundingClientRect().width}px`);
+      ensurePageChipPlaceholder();
+    }
+
+    if (pageChipDragState.moved) {
+      updateDraggedPageChipPosition(e.clientX, e.clientY);
+      previewPageChipOrder(e.clientY);
+    }
+    return;
+  }
+
   if (!draggedDrawerItemId || !drawerItemDragState) return;
 
   const distance = Math.hypot(e.clientX - drawerItemDragState.x, e.clientY - drawerItemDragState.y);
@@ -3028,6 +3372,32 @@ document.addEventListener('pointermove', (e) => {
 });
 
 document.addEventListener('pointerup', async () => {
+  if (draggedPageChipId && pageChipDragState) {
+    const moved = pageChipDragState.moved;
+    const draggedGroupKey = pageChipDragState.groupKey;
+    if (moved) {
+      const orderUrls = [...pageChipDragState.listEl.children]
+        .map(node => {
+          if (node === pageChipPlaceholderEl) return draggedPageChipId;
+          if (node === draggedPageChipEl) return '';
+          return node.dataset?.chipSortId || '';
+        })
+        .filter(Boolean);
+
+      await saveGroupTabRowOrder(pageChipDragState.groupKey, orderUrls);
+      if (draggedPageChipEl && pageChipPlaceholderEl) {
+        pageChipDragState.listEl.insertBefore(draggedPageChipEl, pageChipPlaceholderEl);
+      }
+    }
+
+    clearPageChipDragState();
+
+    if (moved) {
+      updateGroupNavButtonIcon(draggedGroupKey);
+    }
+    return;
+  }
+
   if (!draggedDrawerItemId || !drawerItemDragState) return;
 
   const moved = drawerItemDragState.moved;
@@ -3168,6 +3538,15 @@ document.addEventListener('change', async (e) => {
   } catch (err) {
     showToast(err?.message || 'Could not load background');
   }
+});
+
+document.addEventListener('submit', async (e) => {
+  if (e.target.id !== 'headerSearchForm') return;
+
+  e.preventDefault();
+  const input = document.getElementById('headerSearchInput');
+  const query = input?.value || '';
+  await runDefaultSearch(query);
 });
 
 
