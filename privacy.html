@@ -19,6 +19,7 @@
       --accent-soft: #f2e7db;
       --accent-border: #d4b396;
       --shadow: 0 18px 42px rgba(26, 22, 19, 0.08);
+      --line: rgba(212, 179, 150, 0.24);
     }
 
     * {
@@ -48,13 +49,111 @@
     .page {
       width: min(920px, calc(100vw - 32px));
       margin: 0 auto;
-      padding: 56px 0 72px;
+      padding: 36px 0 72px;
       position: relative;
       z-index: 1;
     }
 
+    .topbar {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 16px;
+      margin-bottom: 28px;
+      padding: 10px 14px;
+      border: 1px solid var(--line);
+      border-radius: 999px;
+      background: rgba(255, 253, 249, 0.72);
+      backdrop-filter: blur(10px);
+    }
+
+    .brandmark {
+      display: inline-flex;
+      align-items: center;
+      gap: 10px;
+      min-width: 0;
+      color: var(--ink);
+      text-decoration: none;
+    }
+
+    .brandmark-badge {
+      width: 38px;
+      height: 38px;
+      border-radius: 12px;
+      background: color-mix(in srgb, var(--accent-soft) 72%, var(--card) 28%);
+      border: 1px solid color-mix(in srgb, var(--accent-border) 74%, var(--card) 26%);
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.5);
+      flex-shrink: 0;
+      overflow: hidden;
+    }
+
+    .brandmark-badge img {
+      width: 24px;
+      height: 24px;
+      display: block;
+    }
+
+    .brandmark-text {
+      display: flex;
+      flex-direction: column;
+      min-width: 0;
+    }
+
+    .brandmark-title {
+      font-size: 13px;
+      font-weight: 700;
+      letter-spacing: 0.01em;
+    }
+
+    .brandmark-meta {
+      font-size: 11px;
+      color: var(--muted);
+    }
+
+    .topbar-links {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      justify-content: flex-end;
+    }
+
+    .topbar-link {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      min-height: 34px;
+      padding: 0 12px;
+      border-radius: 999px;
+      border: 1px solid color-mix(in srgb, var(--accent-border) 68%, var(--card) 32%);
+      background: color-mix(in srgb, var(--accent-soft) 54%, var(--card) 46%);
+      color: var(--accent);
+      text-decoration: none;
+      font-size: 12px;
+      font-weight: 600;
+    }
+
+    .topbar-link.is-primary {
+      background: color-mix(in srgb, var(--accent) 92%, var(--card) 8%);
+      border-color: color-mix(in srgb, var(--accent) 78%, var(--ink) 22%);
+      color: #fffaf5;
+      box-shadow: 0 10px 22px color-mix(in srgb, var(--accent) 16%, transparent);
+    }
+
+    .topbar-link.is-primary:hover,
+    .topbar-link.is-primary:focus-visible {
+      background: color-mix(in srgb, var(--accent) 84%, var(--ink) 16%);
+      text-decoration: none;
+    }
+
     .hero {
       padding: 6px 2px 28px;
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) auto;
+      gap: 18px;
+      align-items: end;
     }
 
     .eyebrow {
@@ -82,6 +181,41 @@
       color: color-mix(in srgb, var(--ink) 78%, var(--muted) 22%);
     }
 
+    .hero-actions {
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: flex-end;
+      gap: 10px;
+      align-self: start;
+    }
+
+    .hero-button {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      min-height: 40px;
+      padding: 0 16px;
+      border-radius: 999px;
+      border: 1px solid color-mix(in srgb, var(--accent-border) 74%, var(--card) 26%);
+      background: rgba(255, 253, 249, 0.88);
+      color: var(--accent);
+      font-size: 13px;
+      font-weight: 700;
+      text-decoration: none;
+      box-shadow: 0 10px 24px rgba(26, 22, 19, 0.06);
+    }
+
+    .hero-button.is-primary {
+      background: color-mix(in srgb, var(--accent-soft) 56%, var(--card) 44%);
+    }
+
+    .hero-button:hover,
+    .hero-button:focus-visible {
+      text-decoration: none;
+      background: color-mix(in srgb, var(--accent-soft) 68%, var(--card) 32%);
+      transform: translateY(-1px);
+    }
+
     .meta {
       display: flex;
       flex-wrap: wrap;
@@ -99,6 +233,13 @@
       font-weight: 600;
     }
 
+    .layout {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) 244px;
+      gap: 18px;
+      align-items: start;
+    }
+
     .card {
       background: rgba(255, 253, 249, 0.9);
       border: 1px solid rgba(212, 179, 150, 0.35);
@@ -108,20 +249,32 @@
       backdrop-filter: blur(10px);
     }
 
+    .toc-card {
+      position: sticky;
+      top: 18px;
+      padding: 18px 18px 8px;
+    }
+
+    .toc-title {
+      margin: 0 0 12px;
+      font-size: 11px;
+      letter-spacing: 0.16em;
+      text-transform: uppercase;
+      color: var(--muted);
+      font-weight: 700;
+    }
+
     .toc {
       display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
-      gap: 12px 18px;
-      margin-bottom: 22px;
-      padding-bottom: 22px;
-      border-bottom: 1px solid rgba(212, 179, 150, 0.22);
+      gap: 10px;
     }
 
     .toc a {
       color: var(--accent);
       text-decoration: none;
-      font-size: 14px;
+      font-size: 13px;
       font-weight: 600;
+      line-height: 1.45;
     }
 
     .toc a:hover,
@@ -133,6 +286,11 @@
     section {
       padding-bottom: 18px;
       margin-bottom: 8px;
+      border-bottom: 1px solid rgba(212, 179, 150, 0.18);
+    }
+
+    section:last-of-type {
+      border-bottom: none;
     }
 
     h2 {
@@ -141,6 +299,27 @@
       line-height: 1.2;
       font-weight: 600;
       color: var(--ink);
+    }
+
+    .legal-note {
+      margin: 0 0 20px;
+      padding: 16px 18px;
+      border-radius: 18px;
+      border: 1px solid rgba(212, 179, 150, 0.24);
+      background: linear-gradient(180deg, rgba(242, 231, 219, 0.54), rgba(255, 253, 249, 0.78));
+    }
+
+    .legal-note-title {
+      margin: 0 0 8px;
+      font-size: 12px;
+      font-weight: 700;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      color: var(--accent);
+    }
+
+    .legal-note p:last-child {
+      margin-bottom: 0;
     }
 
     p {
@@ -172,14 +351,61 @@
       border: 1px solid rgba(212, 179, 150, 0.28);
     }
 
+    .footer {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px 18px;
+      margin-top: 22px;
+      padding: 0 4px;
+      color: var(--muted);
+      font-size: 12px;
+    }
+
+    .footer-links {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px 14px;
+    }
+
     a {
       color: var(--accent);
+    }
+
+    a:hover,
+    a:focus-visible {
+      text-underline-offset: 3px;
+    }
+
+    @media (max-width: 900px) {
+      .hero {
+        grid-template-columns: 1fr;
+      }
+
+      .hero-actions {
+        justify-content: flex-start;
+      }
+
+      .layout {
+        grid-template-columns: 1fr;
+      }
+
+      .toc-card {
+        position: static;
+        order: -1;
+      }
+
+      .toc {
+        grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+        gap: 10px 16px;
+      }
     }
 
     @media (max-width: 720px) {
       .page {
         width: min(100vw - 24px, 920px);
-        padding: 36px 0 48px;
+        padding: 22px 0 42px;
       }
 
       .card {
@@ -190,156 +416,207 @@
       .subtitle {
         font-size: 15px;
       }
+
+      .topbar {
+        border-radius: 18px;
+        padding: 12px;
+        align-items: flex-start;
+        flex-direction: column;
+      }
+
+      .topbar-links {
+        justify-content: flex-start;
+      }
     }
   </style>
 </head>
 <body>
   <main class="page">
+    <div class="topbar">
+      <a class="brandmark" href="https://github.com/V-IOLE-T/tab-harbor" target="_blank" rel="noreferrer">
+        <span class="brandmark-badge" aria-hidden="true">
+          <img src="extension/icons/icon128.png" alt="">
+        </span>
+        <span class="brandmark-text">
+          <span class="brandmark-title">Tab Harbor</span>
+          <span class="brandmark-meta">Chrome extension privacy page</span>
+        </span>
+      </a>
+      <div class="topbar-links">
+        <a class="topbar-link is-primary" href="https://github.com/V-IOLE-T/tab-harbor" target="_blank" rel="noreferrer">Back to project home</a>
+        <a class="topbar-link" href="https://github.com/V-IOLE-T/tab-harbor/blob/main/PRIVACY.md" target="_blank" rel="noreferrer">Markdown</a>
+      </div>
+    </div>
+
     <header class="hero">
-      <p class="eyebrow">Tab Harbor</p>
-      <h1>Privacy Policy</h1>
-      <p class="subtitle">
-        Tab Harbor is a calmer Chrome new tab workspace for open tabs, quick links, saved reads, and lightweight todos.
-        This page explains what data the extension accesses, why it needs that data, and how that data is handled.
-      </p>
-      <div class="meta">
-        <span class="meta-chip">Last updated: 2026-04-18</span>
-        <span class="meta-chip">Local-first by default</span>
-        <span class="meta-chip">No remote code</span>
+      <div>
+        <p class="eyebrow">Tab Harbor</p>
+        <h1>Privacy Policy</h1>
+        <p class="subtitle">
+          Tab Harbor is a calmer Chrome new tab workspace for open tabs, quick links, saved reads, and lightweight todos.
+          This page explains what data the extension accesses, why it needs that data, and how that data is handled.
+        </p>
+        <div class="meta">
+          <span class="meta-chip">Last updated: 2026-04-18</span>
+          <span class="meta-chip">Local-first by default</span>
+          <span class="meta-chip">No remote code</span>
+        </div>
+      </div>
+      <div class="hero-actions">
+        <a class="hero-button is-primary" href="https://github.com/V-IOLE-T/tab-harbor" target="_blank" rel="noreferrer">Open project</a>
+        <a class="hero-button" href="#contact">Contact</a>
       </div>
     </header>
 
-    <article class="card">
-      <nav class="toc" aria-label="Table of contents">
-        <a href="#summary">1. Summary</a>
-        <a href="#data-accessed">2. Information the extension accesses</a>
-        <a href="#data-use">3. How the data is used</a>
-        <a href="#permissions">4. Chrome permissions</a>
-        <a href="#storage">5. Data storage and retention</a>
-        <a href="#sharing">6. Data sharing</a>
-        <a href="#remote-code">7. Remote code</a>
-        <a href="#third-party">8. Third-party services</a>
-        <a href="#choices">9. User choices and controls</a>
-        <a href="#children">10. Children’s privacy</a>
-        <a href="#changes">11. Changes to this policy</a>
-        <a href="#contact">12. Contact</a>
-      </nav>
-
-      <section id="summary">
-        <h2>1. Summary</h2>
-        <p>Tab Harbor is designed to work locally in the browser.</p>
-        <ul>
-          <li>It does not require a user account.</li>
-          <li>It does not sell user data.</li>
-          <li>It does not use remote code.</li>
-          <li>It does not send workspace data to a developer-controlled backend.</li>
-        </ul>
-        <p>Most extension data is stored locally through Chrome extension storage APIs.</p>
-      </section>
-
-      <section id="data-accessed">
-        <h2>2. Information the extension accesses</h2>
-        <p>To provide its core features, Tab Harbor may access the following categories of data:</p>
-        <ul>
-          <li>Open tab metadata, including tab titles, URLs, and tab state</li>
-          <li>Quick links created by the user</li>
-          <li>Saved read-later items created by the user</li>
-          <li>Todo items created by the user</li>
-          <li>Theme, transparency, layout, and ordering preferences selected by the user</li>
-          <li>Clipboard image or SVG content, but only when the user explicitly pastes a custom shortcut icon</li>
-        </ul>
-        <p>Tab Harbor does not intentionally collect sensitive categories such as health data, financial account credentials, or personal communications.</p>
-      </section>
-
-      <section id="data-use">
-        <h2>3. How the data is used</h2>
-        <p>Tab Harbor uses the accessed data only to provide the extension’s single purpose:</p>
-        <ul>
-          <li>Show and organize the user’s current browser session in the new tab page</li>
-          <li>Help the user review, group, focus, close, deduplicate, save, and restore tabs</li>
-          <li>Let the user manage quick links, saved reads, and lightweight todos in one workspace</li>
-          <li>Restore user preferences and layout state when the new tab page is opened again</li>
-          <li>Let the user paste a custom icon into a shortcut when they explicitly choose to do so</li>
-        </ul>
-        <p>Tab Harbor does not use this data for advertising, profiling, creditworthiness, or unrelated analytics.</p>
-      </section>
-
-      <section id="permissions">
-        <h2>4. Chrome permissions and why they are needed</h2>
-        <p>Tab Harbor requests the following Chrome permissions:</p>
-        <p><strong><code>tabs</code></strong></p>
-        <ul>
-          <li>display open tabs in the workspace</li>
-          <li>group tabs by site or workflow</li>
-          <li>focus a selected tab</li>
-          <li>close or deduplicate tabs at the user’s request</li>
-          <li>save or restore tabs as part of the read-later workflow</li>
-        </ul>
-        <p><strong><code>storage</code></strong></p>
-        <ul>
-          <li>save quick links, saved reads, todos, theme settings, layout order, and other local workspace preferences</li>
-        </ul>
-        <p><strong><code>search</code></strong></p>
-        <ul>
-          <li>let the user submit searches from the built-in search field through the browser’s default search engine</li>
-        </ul>
-        <p><strong><code>clipboardRead</code></strong></p>
-        <ul>
-          <li>let the user explicitly paste an image or SVG into the shortcut editor for a custom shortcut icon</li>
-        </ul>
-      </section>
-
-      <section id="storage">
-        <h2>5. Data storage and retention</h2>
-        <p>Tab Harbor stores extension data locally using Chrome extension storage APIs, primarily <code>chrome.storage.local</code>.</p>
-        <p>This includes items such as quick links, saved reads, todos, theme preferences, and layout state.</p>
-        <p>This data remains in the browser profile until the user removes it through the extension UI, clears extension storage, or uninstalls the extension.</p>
-      </section>
-
-      <section id="sharing">
-        <h2>6. Data sharing</h2>
-        <p>Tab Harbor does not sell user data.</p>
-        <p>Tab Harbor does not transfer user data to third parties except where necessary to perform a user-requested browser action, such as opening a page chosen by the user or submitting a search through the browser’s default search engine.</p>
-        <p>Aside from those normal browser actions initiated by the user, Tab Harbor does not send workspace data to a developer-controlled remote service.</p>
-      </section>
-
-      <section id="remote-code">
-        <h2>7. Remote code</h2>
-        <p>Tab Harbor does not use remote code.</p>
-        <p>All JavaScript and extension assets required to run the extension are packaged with the extension bundle. Tab Harbor does not download and execute external JavaScript or WebAssembly at runtime.</p>
-      </section>
-
-      <section id="third-party">
-        <h2>8. Third-party services</h2>
-        <p>Tab Harbor relies on Chrome’s extension platform APIs to function.</p>
-        <p>When a user opens a webpage or submits a search through the extension, the browser may connect to the destination website or the configured default search engine as part of the user’s explicit action.</p>
-      </section>
-
-      <section id="choices">
-        <h2>9. User choices and controls</h2>
-        <p>Users can control their data by editing or deleting quick links, deleting saved reads or todos, changing theme and layout preferences, uninstalling the extension, or clearing extension storage through browser settings.</p>
-        <p>If you do not want Tab Harbor to access your open tabs, do not use the extension.</p>
-      </section>
-
-      <section id="children">
-        <h2>10. Children’s privacy</h2>
-        <p>Tab Harbor is not directed to children under 13, and the developer does not knowingly collect personal information from children.</p>
-      </section>
-
-      <section id="changes">
-        <h2>11. Changes to this policy</h2>
-        <p>This Privacy Policy may be updated from time to time to reflect product changes, permission changes, or legal requirements.</p>
-        <p>The latest version will be published at the public URL associated with the extension listing.</p>
-      </section>
-
-      <section id="contact">
-        <h2>12. Contact</h2>
-        <div class="contact">
-          <p>If you have questions about this Privacy Policy or Tab Harbor, you may contact:</p>
-          <p><strong>Publisher contact email:</strong> <a href="mailto:lunatic.halle@gmail.com">lunatic.halle@gmail.com</a></p>
+    <div class="layout">
+      <article class="card">
+        <div class="legal-note">
+          <p class="legal-note-title">Privacy Snapshot</p>
+          <p>Tab Harbor is a local-first Chrome extension. It organizes tabs, quick links, saved reads, and lightweight todos inside the new tab page. It does not require an account, does not sell user data, and does not use remote code.</p>
         </div>
-      </section>
-    </article>
+
+        <section id="summary">
+          <h2>1. Summary</h2>
+          <p>Tab Harbor is designed to work locally in the browser.</p>
+          <ul>
+            <li>It does not require a user account.</li>
+            <li>It does not sell user data.</li>
+            <li>It does not use remote code.</li>
+            <li>It does not send workspace data to a developer-controlled backend.</li>
+          </ul>
+          <p>Most extension data is stored locally through Chrome extension storage APIs.</p>
+        </section>
+
+        <section id="data-accessed">
+          <h2>2. Information the extension accesses</h2>
+          <p>To provide its core features, Tab Harbor may access the following categories of data:</p>
+          <ul>
+            <li>Open tab metadata, including tab titles, URLs, and tab state</li>
+            <li>Quick links created by the user</li>
+            <li>Saved read-later items created by the user</li>
+            <li>Todo items created by the user</li>
+            <li>Theme, transparency, layout, and ordering preferences selected by the user</li>
+            <li>Clipboard image or SVG content, but only when the user explicitly pastes a custom shortcut icon</li>
+          </ul>
+          <p>Tab Harbor does not intentionally collect sensitive categories such as health data, financial account credentials, or personal communications.</p>
+        </section>
+
+        <section id="data-use">
+          <h2>3. How the data is used</h2>
+          <p>Tab Harbor uses the accessed data only to provide the extension’s single purpose:</p>
+          <ul>
+            <li>Show and organize the user’s current browser session in the new tab page</li>
+            <li>Help the user review, group, focus, close, deduplicate, save, and restore tabs</li>
+            <li>Let the user manage quick links, saved reads, and lightweight todos in one workspace</li>
+            <li>Restore user preferences and layout state when the new tab page is opened again</li>
+            <li>Let the user paste a custom icon into a shortcut when they explicitly choose to do so</li>
+          </ul>
+          <p>Tab Harbor does not use this data for advertising, profiling, creditworthiness, or unrelated analytics.</p>
+        </section>
+
+        <section id="permissions">
+          <h2>4. Chrome permissions and why they are needed</h2>
+          <p>Tab Harbor requests the following Chrome permissions:</p>
+          <p><strong><code>tabs</code></strong></p>
+          <ul>
+            <li>display open tabs in the workspace</li>
+            <li>group tabs by site or workflow</li>
+            <li>focus a selected tab</li>
+            <li>close or deduplicate tabs at the user’s request</li>
+            <li>save or restore tabs as part of the read-later workflow</li>
+          </ul>
+          <p><strong><code>storage</code></strong></p>
+          <ul>
+            <li>save quick links, saved reads, todos, theme settings, layout order, and other local workspace preferences</li>
+          </ul>
+          <p><strong><code>search</code></strong></p>
+          <ul>
+            <li>let the user submit searches from the built-in search field through the browser’s default search engine</li>
+          </ul>
+          <p><strong><code>clipboardRead</code></strong></p>
+          <ul>
+            <li>let the user explicitly paste an image or SVG into the shortcut editor for a custom shortcut icon</li>
+          </ul>
+        </section>
+
+        <section id="storage">
+          <h2>5. Data storage and retention</h2>
+          <p>Tab Harbor stores extension data locally using Chrome extension storage APIs, primarily <code>chrome.storage.local</code>.</p>
+          <p>This includes items such as quick links, saved reads, todos, theme preferences, and layout state.</p>
+          <p>This data remains in the browser profile until the user removes it through the extension UI, clears extension storage, or uninstalls the extension.</p>
+        </section>
+
+        <section id="sharing">
+          <h2>6. Data sharing</h2>
+          <p>Tab Harbor does not sell user data.</p>
+          <p>Tab Harbor does not transfer user data to third parties except where necessary to perform a user-requested browser action, such as opening a page chosen by the user or submitting a search through the browser’s default search engine.</p>
+          <p>Aside from those normal browser actions initiated by the user, Tab Harbor does not send workspace data to a developer-controlled remote service.</p>
+        </section>
+
+        <section id="remote-code">
+          <h2>7. Remote code</h2>
+          <p>Tab Harbor does not use remote code.</p>
+          <p>All JavaScript and extension assets required to run the extension are packaged with the extension bundle. Tab Harbor does not download and execute external JavaScript or WebAssembly at runtime.</p>
+        </section>
+
+        <section id="third-party">
+          <h2>8. Third-party services</h2>
+          <p>Tab Harbor relies on Chrome’s extension platform APIs to function.</p>
+          <p>When a user opens a webpage or submits a search through the extension, the browser may connect to the destination website or the configured default search engine as part of the user’s explicit action.</p>
+        </section>
+
+        <section id="choices">
+          <h2>9. User choices and controls</h2>
+          <p>Users can control their data by editing or deleting quick links, deleting saved reads or todos, changing theme and layout preferences, uninstalling the extension, or clearing extension storage through browser settings.</p>
+          <p>If you do not want Tab Harbor to access your open tabs, do not use the extension.</p>
+        </section>
+
+        <section id="children">
+          <h2>10. Children’s privacy</h2>
+          <p>Tab Harbor is not directed to children under 13, and the developer does not knowingly collect personal information from children.</p>
+        </section>
+
+        <section id="changes">
+          <h2>11. Changes to this policy</h2>
+          <p>This Privacy Policy may be updated from time to time to reflect product changes, permission changes, or legal requirements.</p>
+          <p>The latest version will be published at the public URL associated with the extension listing.</p>
+        </section>
+
+        <section id="contact">
+          <h2>12. Contact</h2>
+          <div class="contact">
+            <p>If you have questions about this Privacy Policy or Tab Harbor, you may contact:</p>
+            <p><strong>Publisher contact email:</strong> <a href="mailto:lunatic.halle@gmail.com">lunatic.halle@gmail.com</a></p>
+          </div>
+        </section>
+      </article>
+
+      <aside class="card toc-card">
+        <p class="toc-title">Contents</p>
+        <nav class="toc" aria-label="Table of contents">
+          <a href="#summary">1. Summary</a>
+          <a href="#data-accessed">2. Information the extension accesses</a>
+          <a href="#data-use">3. How the data is used</a>
+          <a href="#permissions">4. Chrome permissions</a>
+          <a href="#storage">5. Data storage and retention</a>
+          <a href="#sharing">6. Data sharing</a>
+          <a href="#remote-code">7. Remote code</a>
+          <a href="#third-party">8. Third-party services</a>
+          <a href="#choices">9. User choices and controls</a>
+          <a href="#children">10. Children’s privacy</a>
+          <a href="#changes">11. Changes to this policy</a>
+          <a href="#contact">12. Contact</a>
+        </nav>
+      </aside>
+    </div>
+
+    <footer class="footer">
+      <span>Tab Harbor privacy page for Chrome Web Store review and public reference.</span>
+      <div class="footer-links">
+        <a href="https://github.com/V-IOLE-T/tab-harbor" target="_blank" rel="noreferrer">GitHub repository</a>
+        <a href="https://github.com/V-IOLE-T/tab-harbor/blob/main/PRIVACY.md" target="_blank" rel="noreferrer">Source markdown</a>
+      </div>
+    </footer>
   </main>
 </body>
 </html>
