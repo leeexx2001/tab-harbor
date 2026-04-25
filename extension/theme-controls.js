@@ -131,6 +131,44 @@ const THEMES = {
       '--card-bg': '#fffaf7',
     },
   },
+  midnight: {
+    name: 'Midnight',
+    meta: 'Dark mode',
+    vars: {
+      // 基础颜色
+      '--ink': '#e8e2da',
+      '--paper': '#1a1613',
+      '--warm-gray': '#2a2420',
+      '--muted': '#7a7169',
+
+      // 强调色（调整为适合暗色背景）
+      '--accent-amber': '#d4854a',
+      '--accent-sage': '#6b8f75',
+      '--accent-slate': '#6b7f8f',
+      '--accent-rose': '#c46b6b',
+
+      // 工作区配色
+      '--workspace-accent': '#9a754f',
+      '--workspace-accent-soft': '#2a2420',
+      '--workspace-accent-border': '#3a3430',
+      '--workspace-accent-contrast': '#1a1613',
+
+      // 状态颜色
+      '--status-active': '#4d8f5a',
+      '--status-cooling': '#c4993e',
+      '--status-abandoned': '#c46b6b',
+
+      // 卡片背景
+      '--card-bg': '#221c18',
+
+      // ⭐ 新增：覆盖阴影颜色（暗色模式下需要更亮的阴影）
+      '--shadow': 'rgba(232, 226, 218, 0.08)',
+
+      // ⭐ 可选：覆盖透明度相关变量（如果需要不同的透明效果）
+      // '--custom-surface-opacity': '18%',
+      // '--floating-surface-opacity': '88%',
+    },
+  }
 };
 
 let themePreferences = {
@@ -491,9 +529,9 @@ function syncShortcutEditor() {
     ? 'Custom image icon'
     : shortcutEditorState.iconKind === 'svg'
       ? 'SVG icon'
-    : shortcutEditorState.iconKind === 'glyph'
-      ? 'Emoji icon'
-      : 'Website icon';
+      : shortcutEditorState.iconKind === 'glyph'
+        ? 'Emoji icon'
+        : 'Website icon';
   const previewMeta = shortcutEditorState.iconKind
     ? 'Custom icon will replace the site favicon.'
     : 'Upload or paste an image, or type an emoji.';
@@ -848,9 +886,9 @@ function renderQuickShortcutCard(shortcut) {
     ? customIcon.value
     : customIcon.kind === 'svg'
       ? svgToDataUrl(customIcon.value)
-    : customIcon.kind === 'glyph'
-      ? ''
-      : faviconUrl;
+      : customIcon.kind === 'glyph'
+        ? ''
+        : faviconUrl;
   const iconErrorFallback = (customIcon.kind === 'image' || customIcon.kind === 'svg') ? (faviconUrl || fallbackUrl) : fallbackUrl;
   const glyphIcon = customIcon.kind === 'glyph' ? customIcon.value : '';
 
@@ -1021,7 +1059,7 @@ async function tryShortcutEditorPasteViaExecCommand() {
     let commandWorked = false;
     try {
       commandWorked = document.execCommand('paste');
-    } catch {}
+    } catch { }
 
     setTimeout(() => cleanup(commandWorked), 120);
   });
@@ -1129,7 +1167,7 @@ document.addEventListener('pointerdown', (e) => {
     height: rect.height,
     moved: false,
   };
-  });
+});
 
 document.addEventListener('pointermove', (e) => {
   if (!quickShortcutDraggedId || !quickShortcutDragState) return;
@@ -1154,11 +1192,11 @@ document.addEventListener('pointerup', async () => {
   const moved = quickShortcutDragState.moved;
   const nextOrderIds = moved
     ? [...quickShortcutDragState.listEl.children]
-        .map(node => {
-          if (node === quickShortcutSlotEl) return quickShortcutDraggedId;
-          return node.dataset?.shortcutId || '';
-        })
-        .filter(Boolean)
+      .map(node => {
+        if (node === quickShortcutSlotEl) return quickShortcutDraggedId;
+        return node.dataset?.shortcutId || '';
+      })
+      .filter(Boolean)
     : [];
   clearQuickShortcutDragState();
 
