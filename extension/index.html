@@ -301,10 +301,6 @@
   </svg>
 </button>
 
-<!-- Personal config (gitignored) — defines LOCAL_LANDING_PAGE_PATTERNS etc. -->
-<!-- If the file doesn't exist, that's fine — app.js uses sensible defaults. -->
-<script src="config.local.js" onerror="/* no personal config, that's fine */"></script>
-
 <!-- Shared icon helpers — real favicons first, then graceful fallbacks -->
 <script src="icon-utils.js"></script>
 <script src="session-groups.js"></script>
@@ -320,5 +316,9 @@
 
 <!-- Main dashboard logic — loads last so the DOM is ready -->
 <script src="app.js"></script>
+
+<!-- Personal config loader (gitignored) — defines LOCAL_LANDING_PAGE_PATTERNS etc. -->
+<!-- Loaded via external script to comply with CSP -->
+<script src="config-loader.js"></script>
 </body>
 </html>

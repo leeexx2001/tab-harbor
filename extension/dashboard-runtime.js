@@ -926,7 +926,7 @@ function buildOverflowChips(hiddenTabs, urlCounts = {}) {
     const fallbackUrl = iconData.sources[1] || '';
     const fallbackLabel = runtimeGetFallbackLabel(label, iconData.hostname);
     return `<div class="page-chip clickable${chipClass}" data-action="focus-tab" data-tab-url="${safeUrl}" aria-label="${safeTitle}">
-      ${faviconUrl ? `<img class="chip-favicon" src="${faviconUrl}" alt="" onerror="handleIconError(this, '${fallbackUrl}')">` : ''}
+      ${faviconUrl ? `<img class="chip-favicon" src="${faviconUrl}" alt="" data-fallback-url="${fallbackUrl}">` : ''}
       <span class="chip-favicon chip-favicon-fallback"${faviconUrl ? ' style="display:none"' : ''}>${fallbackLabel}</span>
       <span class="chip-text">${label}</span>${dupeTag}
       <div class="chip-actions">
@@ -1016,7 +1016,7 @@ function renderDomainCard(group) {
       <button class="drawer-reorder-handle chip-reorder-handle" type="button" data-chip-drag-handle="tab" aria-label="Drag to reorder tab">
         <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M8 6h.01M8 12h.01M8 18h.01M16 6h.01M16 12h.01M16 18h.01" /></svg>
       </button>
-      ${faviconUrl ? `<img class="chip-favicon" src="${faviconUrl}" alt="" onerror="handleIconError(this, '${fallbackUrl}')">` : ''}
+      ${faviconUrl ? `<img class="chip-favicon" src="${faviconUrl}" alt="" data-fallback-url="${fallbackUrl}">` : ''}
       <span class="chip-favicon chip-favicon-fallback"${faviconUrl ? ' style="display:none"' : ''}>${fallbackLabel}</span>
       <span class="chip-text">${label}</span>${dupeTag}
       <div class="chip-actions">
@@ -1090,7 +1090,7 @@ function renderGroupNav(group) {
       draggable="false"
     >
       ${iconData.src
-        ? `<img class="group-nav-icon" src="${iconData.src}" alt="" draggable="false" onerror="handleIconError(this, '${iconData.fallbackSrc}')">`
+        ? `<img class="group-nav-icon" src="${iconData.src}" alt="" draggable="false" data-fallback-src="${iconData.fallbackSrc}">`
         : ''}
       <span class="group-nav-fallback"${iconData.src ? ' style="display:none"' : ''}>${iconData.fallbackLabel}</span>
     </button>`;
@@ -1350,6 +1350,9 @@ async function renderStaticDashboard() {
 
   // --- Render "Saved for Later" column ---
   await renderDeferredColumn();
+  
+  // Setup image error handlers for CSP compliance
+  setupImageErrorHandlers();
 }
 
 async function renderDashboard() {
@@ -1428,6 +1431,9 @@ document.addEventListener('click', async (e) => {
 
   // ---- Close duplicate Tab Harbor tabs ----
   if (action === 'close-tabout-dupes') {
+    // Suppress auto-refresh to prevent animation spam
+    window.__suppressAutoRefresh = true;
+    
     await closeTabOutDupes();
     playCloseSound();
     const banner = document.getElementById('tabOutDupeBanner');
@@ -1563,6 +1569,9 @@ document.addEventListener('click', async (e) => {
     const tabUrl = actionEl.dataset.tabUrl;
     if (!tabUrl) return;
 
+    // Suppress auto-refresh to prevent animation spam
+    window.__suppressAutoRefresh = true;
+
     // Close the tab in Chrome directly
     const allTabs = await chrome.tabs.query({});
     const match   = allTabs.find(t => t.url === tabUrl);
@@ -1574,23 +1583,43 @@ document.addEventListener('click', async (e) => {
 
     // Animate the chip row out
     const chip = actionEl.closest('.page-chip');
+    const parentCard = chip?.closest('.mission-card');
+    
     if (chip) {
       const rect = chip.getBoundingClientRect();
       shootConfetti(rect.left + rect.width / 2, rect.top + rect.height / 2);
-      chip.style.transition = 'opacity 0.2s, transform 0.2s';
+      
+      // First phase: fade and scale down
+      chip.style.transition = 'opacity 0.15s ease, transform 0.15s ease';
       chip.style.opacity    = '0';
-      chip.style.transform  = 'scale(0.8)';
+      chip.style.transform  = 'scale(0.95)';
+      
       setTimeout(() => {
-        chip.remove();
-        // If the card now has no tabs, remove it too
-        const parentCard = document.querySelector('.mission-card:has(.mission-pages:empty)');
-        if (parentCard) animateCardOut(parentCard);
-        document.querySelectorAll('.mission-card').forEach(c => {
-          if (c.querySelectorAll('.page-chip[data-action="focus-tab"]').length === 0) {
-            animateCardOut(c);
+        // Second phase: collapse height to 0 for smooth upward slide
+        chip.style.transition = 'height 0.2s ease-out, margin 0.2s ease-out, padding 0.2s ease-out, opacity 0.1s';
+        chip.style.height     = '0';
+        chip.style.marginTop  = '0';
+        chip.style.marginBottom = '0';
+        chip.style.paddingTop = '0';
+        chip.style.paddingBottom = '0';
+        chip.style.overflow   = 'hidden';
+        
+        setTimeout(() => {
+          chip.remove();
+          
+          // Check if card is now empty and animate it out
+          if (parentCard) {
+            const remainingChips = parentCard.querySelectorAll('.page-chip[data-action="focus-tab"]');
+            
+            if (remainingChips.length === 0) {
+              // Card is empty - wait a brief moment for layout to settle, then animate card out
+              setTimeout(() => {
+                animateCardOut(parentCard);
+              }, 50);
+            }
           }
-        });
-      }, 200);
+        }, 200);
+      }, 150);
     }
 
     // Update footer
@@ -1607,6 +1636,9 @@ document.addEventListener('click', async (e) => {
     const tabUrl   = actionEl.dataset.tabUrl;
     const tabTitle = actionEl.dataset.tabTitle || tabUrl;
     if (!tabUrl) return;
+
+    // Suppress auto-refresh to prevent animation spam
+    window.__suppressAutoRefresh = true;
 
     // Save to chrome.storage.local
     try {
@@ -1728,6 +1760,9 @@ document.addEventListener('click', async (e) => {
     });
     if (!group) return;
 
+    // Suppress auto-refresh to prevent animation spam
+    window.__suppressAutoRefresh = true;
+
     const urls      = group.tabs.map(t => t.url);
     // Landing pages and custom groups (whose domain key isn't a real hostname)
     // must use exact URL matching to avoid closing unrelated tabs
@@ -1762,6 +1797,9 @@ document.addEventListener('click', async (e) => {
     const urls = urlsEncoded.split(',').map(u => decodeURIComponent(u)).filter(Boolean);
     if (urls.length === 0) return;
 
+    // Suppress auto-refresh to prevent animation spam
+    window.__suppressAutoRefresh = true;
+
     await closeDuplicateTabs(urls, true);
     playCloseSound();
 
@@ -1794,6 +1832,9 @@ document.addEventListener('click', async (e) => {
 
   // ---- Close ALL open tabs ----
   if (action === 'close-all-open-tabs') {
+    // Suppress auto-refresh to prevent animation spam
+    window.__suppressAutoRefresh = true;
+    
     const allUrls = openTabs
       .filter(t => t.url && !t.url.startsWith('chrome') && !t.url.startsWith('about:'))
       .map(t => t.url);
@@ -2273,10 +2314,196 @@ document.addEventListener('submit', async (e) => {
 /* ----------------------------------------------------------------
    INITIALIZE
    ---------------------------------------------------------------- */
+
+/**
+ * injectDynamicAnimationStyles()
+ *
+ * Dynamically generates CSS animation rules for staggered entry animations.
+ * This avoids hardcoding dozens of nth-child selectors in the CSS file.
+ * 
+ * Strategy: Stagger first 10 elements, then cap delay to avoid excessive wait times.
+ */
+function injectDynamicAnimationStyles() {
+  // Check if styles already injected to avoid duplicates
+  if (document.getElementById('dynamic-animation-styles')) return;
+
+  const styleEl = document.createElement('style');
+  styleEl.id = 'dynamic-animation-styles';
+
+  const rules = [];
+  const MAX_STAGGER_COUNT = 10; // Only stagger first 10 elements
+  const STAGGER_INCREMENT = 0.05; // 50ms between each element
+
+  // Active section mission cards - start at 0.25s, stagger first 10, then cap
+  for (let i = 1; i <= 50; i++) {
+    const delay = i <= MAX_STAGGER_COUNT 
+      ? 0.25 + (i - 1) * STAGGER_INCREMENT
+      : 0.25 + (MAX_STAGGER_COUNT - 1) * STAGGER_INCREMENT;
+    rules.push(
+      `.active-section .missions .mission-card:nth-child(${i}) { animation: fadeUp 0.4s ease ${delay.toFixed(2)}s both; }`
+    );
+  }
+
+  // Abandoned section mission cards - start at 0.5s, stagger first 10, then cap
+  for (let i = 1; i <= 50; i++) {
+    const delay = i <= MAX_STAGGER_COUNT 
+      ? 0.5 + (i - 1) * STAGGER_INCREMENT
+      : 0.5 + (MAX_STAGGER_COUNT - 1) * STAGGER_INCREMENT;
+    rules.push(
+      `.abandoned-section .missions .mission-card:nth-child(${i}) { animation: fadeUp 0.4s ease ${delay.toFixed(2)}s both; }`
+    );
+  }
+
+  // Deferred list items - stagger first 10, then cap at 0.5s
+  for (let i = 1; i <= 50; i++) {
+    const delay = i <= MAX_STAGGER_COUNT 
+      ? i * STAGGER_INCREMENT
+      : MAX_STAGGER_COUNT * STAGGER_INCREMENT;
+    rules.push(
+      `.deferred-list .deferred-item:nth-child(${i}) { animation-delay: ${delay.toFixed(2)}s; }`
+    );
+  }
+
+  styleEl.textContent = rules.join('\n');
+  document.head.appendChild(styleEl);
+}
+
+/**
+ * setupImageErrorHandlers()
+ * 
+ * Attaches error handlers to all favicon images after DOM update.
+ * This replaces inline onerror attributes to comply with CSP.
+ */
+function setupImageErrorHandlers() {
+  // Handle chip favicons
+  document.querySelectorAll('.chip-favicon[data-fallback-url]').forEach(img => {
+    if (!img.dataset.errorHandlerAttached) {
+      img.addEventListener('error', function() {
+        const fallbackUrl = this.dataset.fallbackUrl;
+        if (fallbackUrl && this.dataset.fallbackApplied !== 'true') {
+          this.dataset.fallbackApplied = 'true';
+          this.src = fallbackUrl;
+          return;
+        }
+        this.style.display = 'none';
+        const sibling = this.nextElementSibling;
+        if (sibling && sibling.classList.contains('chip-favicon-fallback')) {
+          sibling.style.display = '';
+        }
+      });
+      img.dataset.errorHandlerAttached = 'true';
+    }
+  });
+
+  // Handle group nav icons
+  document.querySelectorAll('.group-nav-icon[data-fallback-src]').forEach(img => {
+    if (!img.dataset.errorHandlerAttached) {
+      img.addEventListener('error', function() {
+        const fallbackSrc = this.dataset.fallbackSrc;
+        if (fallbackSrc && this.dataset.fallbackApplied !== 'true') {
+          this.dataset.fallbackApplied = 'true';
+          this.src = fallbackSrc;
+          return;
+        }
+        this.style.display = 'none';
+        const sibling = this.nextElementSibling;
+        if (sibling && sibling.classList.contains('group-nav-fallback')) {
+          sibling.style.display = '';
+        }
+      });
+      img.dataset.errorHandlerAttached = 'true';
+    }
+  });
+}
+
 async function initializeDashboardRuntime() {
+  injectDynamicAnimationStyles();
   await loadThemePreferences();
   await renderDashboard();
+  setupImageErrorHandlers();
   updateBackToTopVisibility();
+  
+  // Listen for tab change notifications from background script
+  setupTabChangeListener();
+  
+  // Debug: Add a test button to manually trigger refresh (can be removed later)
+  if (window.location.search.includes('debug=1')) {
+    addDebugRefreshButton();
+  }
+}
+
+/**
+ * addDebugRefreshButton()
+ * 
+ * Adds a temporary button to test manual refresh.
+ * Only shown when ?debug=1 is in the URL.
+ */
+function addDebugRefreshButton() {
+  const btn = document.createElement('button');
+  btn.textContent = '🔄 Test Refresh';
+  btn.style.cssText = `
+    position: fixed;
+    bottom: 80px;
+    right: 20px;
+    padding: 10px 16px;
+    background: #5a7a62;
+    color: white;
+    border: none;
+    border-radius: 8px;
+    cursor: pointer;
+    z-index: 9999;
+    font-size: 13px;
+  `;
+  btn.onclick = async () => {
+    console.log('[tab-harbor debug] Manual refresh triggered');
+    await renderDashboard();
+    updateBackToTopVisibility();
+    console.log('[tab-harbor debug] Manual refresh complete');
+  };
+  document.body.appendChild(btn);
+  console.log('[tab-harbor debug] Debug button added. Click to test refresh.');
+}
+
+/**
+ * setupTabChangeListener()
+ * 
+ * Listens for messages from background.js when tabs change,
+ * and refreshes the dashboard to show updated tab list.
+ */
+function setupTabChangeListener() {
+  console.log('[tab-harbor] Setting up tab change listener');
+  
+  chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
+    console.log('[tab-harbor] Received message:', message);
+    
+    if (message.action === 'tabs-changed') {
+      // Skip refresh if we just performed a tab action ourselves
+      // This prevents animation spam when closing tabs from the dashboard
+      if (window.__suppressAutoRefresh) {
+        console.log('[tab-harbor] Auto-refresh suppressed (recent user action)');
+        window.__suppressAutoRefresh = false;
+        return;
+      }
+      
+      console.log('[tab-harbor] Tab changed, scheduling refresh...');
+      
+      // Debounce rapid changes (e.g., closing multiple tabs)
+      if (window.__tabRefreshTimeout) {
+        clearTimeout(window.__tabRefreshTimeout);
+      }
+      
+      window.__tabRefreshTimeout = setTimeout(async () => {
+        try {
+          console.log('[tab-harbor] Refreshing dashboard...');
+          await renderDashboard();
+          updateBackToTopVisibility();
+          console.log('[tab-harbor] Dashboard refreshed successfully');
+        } catch (err) {
+          console.warn('[tab-harbor] Failed to refresh dashboard:', err);
+        }
+      }, 300); // Wait 300ms after last tab change
+    }
+  });
 }
 
 function mountDashboardRuntime() {
