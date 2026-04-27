@@ -110,6 +110,13 @@ test('normalizeShortcutUrl adds https for host-only URLs', () => {
   assert.equal(normalizeShortcutUrl('example.org/path'), 'https://example.org/path');
 });
 
+test('normalizeShortcutUrl supports internationalized domains and paths', () => {
+  assert.equal(
+    normalizeShortcutUrl('例子.测试/路径'),
+    'https://xn--fsqu00a.xn--0zwm56d/%E8%B7%AF%E5%BE%84'
+  );
+});
+
 // ---- normalizeQuickShortcuts ----
 
 test('normalizeQuickShortcuts ignores non-array input', () => {

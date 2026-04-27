@@ -27,6 +27,8 @@ let shortcutEditorState = {
   label: '',
   icon: '',
   iconKind: '',
+  presentation: 'default',
+  returnToTabPicker: false,
   focusReturnEl: null,
 };
 let quickShortcutDragState = null;
@@ -38,9 +40,11 @@ let quickShortcutSuppressClickUntil = 0;
 
 // ---- Tab Picker state ----
 let tabPickerOpen = false;
+let tabPickerMode = 'tabs';
 let tabPickerSearchQuery = '';
 let tabPickerSelectedIds = new Set();
 let tabPickerFocusReturnEl = null;
+let tabPickerManualDraft = { url: '', label: '' };
 const THEME_PREFERENCES_KEY = 'themePreferences';
 const QUICK_SHORTCUTS_KEY = 'quickShortcuts';
 const FOCUSABLE_SELECTOR = [
@@ -415,16 +419,27 @@ function createShortcutEditorState(input = {}) {
     label: String(input.label || ''),
     icon: String(input.icon || ''),
     iconKind: String(input.iconKind || 'site'),
+    presentation: input.presentation === 'tab-picker' ? 'tab-picker' : 'default',
+    returnToTabPicker: Boolean(input.returnToTabPicker),
     focusReturnEl: input.focusReturnEl instanceof HTMLElement ? input.focusReturnEl : null,
+  };
+}
+
+function createTabPickerManualDraft(input = {}) {
+  return {
+    url: String(input.url || ''),
+    label: String(input.label || ''),
   };
 }
 
 function getShortcutEditorElements() {
   return {
-    backdrop: document.getElementById('shortcutEditorBackdrop'),
-    panel: document.getElementById('shortcutEditor'),
+    modalBackdrop: document.getElementById('shortcutEditorBackdrop'),
+    modalPanel: document.getElementById('shortcutEditor'),
+    embeddedHost: document.getElementById('tabPickerEditorHost'),
     form: document.getElementById('shortcutEditorForm'),
     title: document.getElementById('shortcutEditorTitle'),
+    back: document.getElementById('shortcutEditorBack'),
     url: document.getElementById('shortcutEditorUrl'),
     label: document.getElementById('shortcutEditorLabel'),
     source: document.getElementById('shortcutEditorSource'),
@@ -443,6 +458,30 @@ function getShortcutEditorElements() {
   };
 }
 
+function getTabPickerElements() {
+  return {
+    panel: document.getElementById('tabPicker'),
+    tabsTab: document.getElementById('tabPickerTabsTab'),
+    urlTab: document.getElementById('tabPickerUrlTab'),
+    searchWrap: document.getElementById('tabPickerSearchWrap'),
+    search: document.getElementById('tabPickerSearch'),
+    list: document.getElementById('tabPickerList'),
+    editorHost: document.getElementById('tabPickerEditorHost'),
+    footer: document.getElementById('tabPickerFooter'),
+  };
+}
+
+function syncFormControlValue(element, nextValue) {
+  if (!element) return;
+  const normalized = String(nextValue || '');
+  const isActive = element === document.activeElement;
+  if (element.dataset.composing === 'true') return;
+  if (isActive && element.value === normalized) return;
+  if (element.value !== normalized) {
+    element.value = normalized;
+  }
+}
+
 function resetShortcutEditorPosition(panel) {
   if (!panel) return;
   panel.style.removeProperty('left');
@@ -453,6 +492,8 @@ function resetShortcutEditorPosition(panel) {
 }
 
 function positionShortcutEditor(triggerEl = null) {
+  if (shortcutEditorState.presentation === 'tab-picker') return;
+
   const panel = document.getElementById('shortcutEditor');
   if (!panel) return;
 
@@ -482,24 +523,60 @@ function positionShortcutEditor(triggerEl = null) {
   panel.style.top = `${Math.round(top)}px`;
 }
 
+function restoreShortcutEditorHome() {
+  const elements = getShortcutEditorElements();
+  if (!elements.form || !elements.modalPanel) return;
+  if (elements.form.parentElement !== elements.modalPanel) {
+    elements.modalPanel.appendChild(elements.form);
+  }
+}
+
+function mountShortcutEditorInTabPicker() {
+  const elements = getShortcutEditorElements();
+  if (!elements.form || !elements.embeddedHost) return;
+  if (elements.form.parentElement !== elements.embeddedHost) {
+    elements.embeddedHost.appendChild(elements.form);
+  }
+}
+
 function syncShortcutEditor() {
   const elements = getShortcutEditorElements();
-  if (!elements.panel || !elements.backdrop) return;
+  if (!elements.form) return;
 
-  elements.panel.hidden = !shortcutEditorState.open;
-  elements.backdrop.hidden = !shortcutEditorState.open;
-  elements.title.textContent = shortcutEditorState.mode === 'edit'
-    ? (themeT ? themeT('shortcutEditTitle') : 'Edit shortcut')
-    : (themeT ? themeT('shortcutAddTitle') : 'Add shortcut');
-  elements.url.value = shortcutEditorState.url;
-  elements.label.value = shortcutEditorState.label;
+  const isEmbedded = shortcutEditorState.presentation === 'tab-picker';
+  if (isEmbedded) {
+    mountShortcutEditorInTabPicker();
+    if (elements.modalPanel) elements.modalPanel.hidden = true;
+    if (elements.modalBackdrop) elements.modalBackdrop.hidden = true;
+    if (elements.embeddedHost) elements.embeddedHost.hidden = !shortcutEditorState.open;
+    elements.form.classList.add('is-tab-picker-pane');
+  } else {
+    restoreShortcutEditorHome();
+    if (elements.modalPanel) elements.modalPanel.hidden = !shortcutEditorState.open;
+    if (elements.modalBackdrop) elements.modalBackdrop.hidden = !shortcutEditorState.open;
+    if (elements.embeddedHost) elements.embeddedHost.hidden = true;
+    elements.form.classList.remove('is-tab-picker-pane');
+  }
+
+  if (elements.back) {
+    elements.back.hidden = true;
+  }
+  if (shortcutEditorState.presentation === 'tab-picker' && shortcutEditorState.mode === 'create') {
+    elements.title.textContent = themeT ? themeT('addByUrlTitle') : 'Add by URL';
+  } else {
+    elements.title.textContent = shortcutEditorState.mode === 'edit'
+      ? (themeT ? themeT('shortcutEditTitle') : 'Edit shortcut')
+      : (themeT ? themeT('shortcutAddTitle') : 'Add shortcut');
+  }
+  syncFormControlValue(elements.url, shortcutEditorState.url);
+  syncFormControlValue(elements.label, shortcutEditorState.label);
   elements.sourceButtons.forEach(button => {
     const isSelected = button.dataset.source === shortcutEditorState.iconKind;
     button.setAttribute('aria-pressed', String(isSelected));
   });
-  elements.emoji.value = shortcutEditorState.iconKind === 'glyph' ? shortcutEditorState.icon : '';
+  syncFormControlValue(elements.emoji, shortcutEditorState.iconKind === 'glyph' ? shortcutEditorState.icon : '');
   if (elements.svgCode) {
-    elements.svgCode.value = shortcutEditorState.iconKind === 'svg' ? shortcutEditorState.icon : '';
+    syncFormControlValue(elements.svgCode, shortcutEditorState.iconKind === 'svg' ? shortcutEditorState.icon : '');
   }
   if (elements.siteGroup) elements.siteGroup.hidden = shortcutEditorState.iconKind !== 'site';
   if (elements.emojiGroup) elements.emojiGroup.hidden = shortcutEditorState.iconKind !== 'glyph';
@@ -551,8 +628,13 @@ function syncShortcutEditor() {
   }
 }
 
-function openShortcutEditor(shortcut = null, triggerEl = null) {
+function openShortcutEditor(shortcut = null, triggerEl = null, options = {}) {
   const normalized = shortcut ? normalizeQuickShortcuts([shortcut])[0] : null;
+  if (options.presentation === 'tab-picker') {
+    mountShortcutEditorInTabPicker();
+  } else {
+    restoreShortcutEditorHome();
+  }
   shortcutEditorState = createShortcutEditorState({
     open: true,
     mode: normalized ? 'edit' : 'create',
@@ -561,20 +643,30 @@ function openShortcutEditor(shortcut = null, triggerEl = null) {
     label: normalized?.label || '',
     icon: normalized?.icon || '',
     iconKind: normalized?.iconKind || 'site',
+    presentation: options.presentation,
+    returnToTabPicker: options.returnToTabPicker,
     focusReturnEl: triggerEl instanceof HTMLElement ? triggerEl : document.activeElement,
   });
   syncShortcutEditor();
   requestAnimationFrame(() => {
-    positionShortcutEditor(triggerEl);
+    if (shortcutEditorState.presentation !== 'tab-picker') {
+      positionShortcutEditor(triggerEl);
+    }
     getShortcutEditorElements().url?.focus?.({ preventScroll: true });
   });
 }
 
 function closeShortcutEditor({ restoreFocus = true } = {}) {
   const focusTarget = shortcutEditorState.focusReturnEl;
-  resetShortcutEditorPosition(getShortcutEditorElements().panel);
+  const wasEmbedded = shortcutEditorState.presentation === 'tab-picker';
+  resetShortcutEditorPosition(getShortcutEditorElements().modalPanel);
   shortcutEditorState = createShortcutEditorState();
   syncShortcutEditor();
+  restoreShortcutEditorHome();
+  if (wasEmbedded) {
+    closeTabPicker({ restoreFocus });
+    return;
+  }
   if (restoreFocus) {
     focusTarget?.focus?.({ preventScroll: true });
   }
@@ -586,6 +678,68 @@ function setShortcutEditorField(field, value) {
     [field]: value,
   });
   syncShortcutEditor();
+}
+
+function syncTabPickerLayout() {
+  const elements = getTabPickerElements();
+  if (!elements.panel) return;
+
+  const isUrlMode = tabPickerMode === 'url';
+  if (elements.tabsTab) {
+    elements.tabsTab.classList.toggle('is-active', !isUrlMode);
+    elements.tabsTab.setAttribute('aria-selected', String(!isUrlMode));
+  }
+  if (elements.urlTab) {
+    elements.urlTab.classList.toggle('is-active', isUrlMode);
+    elements.urlTab.setAttribute('aria-selected', String(isUrlMode));
+  }
+  if (elements.searchWrap) {
+    elements.searchWrap.hidden = isUrlMode;
+  }
+  if (elements.list) {
+    elements.list.hidden = isUrlMode;
+  }
+  if (elements.editorHost) {
+    elements.editorHost.hidden = !isUrlMode;
+  }
+  if (elements.footer && isUrlMode) {
+    elements.footer.hidden = true;
+  }
+}
+
+function setTabPickerMode(nextMode, { focus = true } = {}) {
+  tabPickerMode = nextMode === 'url' ? 'url' : 'tabs';
+  if (tabPickerMode === 'url') {
+    openShortcutEditor(null, tabPickerFocusReturnEl || document.activeElement, {
+      presentation: 'tab-picker',
+    });
+  } else if (shortcutEditorState.presentation === 'tab-picker') {
+    shortcutEditorState = createShortcutEditorState();
+    syncShortcutEditor();
+    restoreShortcutEditorHome();
+  }
+  syncTabPickerLayout();
+
+  requestAnimationFrame(() => {
+    if (!focus) return;
+    const elements = getTabPickerElements();
+    if (tabPickerMode === 'url') {
+      getShortcutEditorElements().url?.focus?.({ preventScroll: true });
+      return;
+    }
+    elements.search?.focus?.({ preventScroll: true });
+  });
+
+  if (tabPickerMode === 'tabs') {
+    renderTabPickerPanel();
+  }
+}
+
+function setTabPickerManualField(field, value) {
+  tabPickerManualDraft = createTabPickerManualDraft({
+    ...tabPickerManualDraft,
+    [field]: value,
+  });
 }
 
 function setShortcutEditorIcon(input) {
@@ -641,6 +795,30 @@ async function saveShortcutEditorShortcut() {
   await saveQuickShortcuts(nextShortcuts);
   await renderQuickShortcuts();
   closeShortcutEditor();
+}
+
+async function saveTabPickerUrlShortcut() {
+  const url = normalizeShortcutUrl(tabPickerManualDraft.url);
+  if (!url) {
+    throw new Error('Please enter a valid URL');
+  }
+
+  const shortcuts = await getQuickShortcuts();
+  if (shortcuts.some(item => item.url === url)) {
+    throw new Error('Already in shortcuts');
+  }
+
+  const nextShortcut = {
+    id: `shortcut-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
+    url,
+    label: tabPickerManualDraft.label.trim(),
+    icon: '',
+    iconKind: 'site',
+  };
+
+  await saveQuickShortcuts([...shortcuts, nextShortcut]);
+  await renderQuickShortcuts();
+  closeTabPicker();
 }
 
 function getShortcutLabel(shortcut) {
@@ -1071,29 +1249,37 @@ function filterRealTabs(tabs) {
 function openTabPicker(triggerEl = null) {
   if (tabPickerOpen) return;
   tabPickerOpen = true;
+  tabPickerMode = 'tabs';
   tabPickerSearchQuery = '';
   tabPickerSelectedIds = new Set();
   tabPickerFocusReturnEl = document.activeElement;
+  tabPickerManualDraft = createTabPickerManualDraft();
 
   const backdrop = document.getElementById('tabPickerBackdrop');
   const panel = document.getElementById('tabPicker');
   if (backdrop) backdrop.removeAttribute('hidden');
   if (panel) panel.removeAttribute('hidden');
 
+  shortcutEditorState = createShortcutEditorState();
+  syncShortcutEditor();
+  restoreShortcutEditorHome();
+  syncTabPickerLayout();
   renderTabPickerPanel();
-
-  const searchInput = document.getElementById('tabPickerSearch');
-  if (searchInput) {
-    searchInput.value = '';
-    searchInput.focus();
-  }
+  getTabPickerElements().search?.focus?.({ preventScroll: true });
 }
 
 function closeTabPicker({ restoreFocus = true } = {}) {
   if (!tabPickerOpen) return;
+  if (shortcutEditorState.presentation === 'tab-picker') {
+    shortcutEditorState = createShortcutEditorState();
+    syncShortcutEditor();
+    restoreShortcutEditorHome();
+  }
   tabPickerOpen = false;
+  tabPickerMode = 'tabs';
   tabPickerSearchQuery = '';
   tabPickerSelectedIds = new Set();
+  tabPickerManualDraft = createTabPickerManualDraft();
 
   const backdrop = document.getElementById('tabPickerBackdrop');
   const panel = document.getElementById('tabPicker');
@@ -1108,6 +1294,10 @@ function closeTabPicker({ restoreFocus = true } = {}) {
 
 async function renderTabPickerPanel() {
   if (!tabPickerOpen) return;
+  if (tabPickerMode !== 'tabs') {
+    syncTabPickerLayout();
+    return;
+  }
 
   const runtime = globalThis.TabHarborDashboardRuntime;
   if (!runtime) return;
@@ -1302,10 +1492,15 @@ document.addEventListener('click', async (e) => {
     return;
   }
 
-  if (action === 'add-by-url') {
+  if (action === 'switch-tab-picker-view') {
     e.preventDefault();
-    closeTabPicker({ restoreFocus: false });
-    openShortcutEditor(null, null);
+    setTabPickerMode(actionEl.dataset.view || 'tabs');
+    return;
+  }
+
+  if (action === 'show-tab-picker-tabs') {
+    e.preventDefault();
+    setTabPickerMode('tabs');
     return;
   }
 
@@ -1388,7 +1583,7 @@ document.addEventListener('click', async (e) => {
 
   if (action === 'close-shortcut-editor') {
     e.preventDefault();
-    closeShortcutEditor();
+    closeShortcutEditor({ restoreFocus: true });
     return;
   }
 
@@ -1520,6 +1715,30 @@ document.addEventListener('input', (e) => {
   }
 });
 
+document.addEventListener('compositionstart', (e) => {
+  if (!(e.target instanceof HTMLElement)) return;
+  if (!['shortcutEditorUrl', 'shortcutEditorLabel', 'shortcutEditorEmoji', 'shortcutEditorSvgCode'].includes(e.target.id)) {
+    return;
+  }
+  e.target.dataset.composing = 'true';
+});
+
+document.addEventListener('compositionend', (e) => {
+  if (!(e.target instanceof HTMLElement)) return;
+  if (e.target.dataset.composing !== 'true') return;
+  delete e.target.dataset.composing;
+
+  if (e.target.id === 'shortcutEditorUrl') {
+    setShortcutEditorField('url', e.target.value);
+    return;
+  }
+
+  if (e.target.id === 'shortcutEditorLabel') {
+    setShortcutEditorField('label', e.target.value);
+    return;
+  }
+});
+
 document.addEventListener('change', async (e) => {
   if (e.target.id !== 'shortcutIconFileInput') return;
 
@@ -1589,14 +1808,14 @@ document.addEventListener('submit', async (e) => {
 
 document.addEventListener('keydown', (e) => {
   if (e.key === 'Escape' && shortcutEditorState.open) {
-    closeShortcutEditor();
+    closeShortcutEditor({ restoreFocus: true });
   }
 });
 
 document.addEventListener('click', (e) => {
   if (!shortcutEditorState.open) return;
   if (e.target.id === 'shortcutEditorBackdrop') {
-    closeShortcutEditor();
+    closeShortcutEditor({ restoreFocus: true });
   }
 });
 
