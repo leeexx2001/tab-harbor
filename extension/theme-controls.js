@@ -173,6 +173,7 @@ let themePreferences = {
   themeId: 'paper',
   customBackground: '',
   surfaceOpacity: 14,
+  hitokotoEnabled: true,
 };
 
 function normalizeThemePreferences(input) {
@@ -186,6 +187,7 @@ function normalizeThemePreferences(input) {
     themeId: THEMES[themeId] ? themeId : 'paper',
     customBackground: typeof next.customBackground === 'string' ? next.customBackground : '',
     surfaceOpacity,
+    hitokotoEnabled: next.hitokotoEnabled !== false,
   };
 }
 

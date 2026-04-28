@@ -152,6 +152,26 @@ body::before {
   transform: translateY(1px);
 }
 
+.hitokoto {
+  margin-top: 10px;
+  font-family: 'Libre Caslon Display', serif;
+  font-size: 14px;
+  line-height: 1.6;
+  color: color-mix(in srgb, var(--muted) 85%, var(--ink) 15%);
+  max-width: 520px;
+}
+
+.hitokoto-text {
+  font-style: italic;
+}
+
+.hitokoto-from {
+  font-size: 12px;
+  color: var(--muted);
+  font-style: normal;
+  white-space: nowrap;
+}
+
 .header-search {
   margin-top: 14px;
   width: 100%;
@@ -2592,6 +2612,9 @@ footer { animation: fadeUp 0.5s ease 0.65s both; }
   .header-title-row {
     justify-content: flex-start;
     gap: 12px;
+  }
+  .hitokoto {
+    max-width: 100%;
   }
   .quick-tabs-grid {
     gap: 12px 10px;
