@@ -10,6 +10,8 @@ const runtimeJs = fs.readFileSync(path.join(__dirname, 'dashboard-runtime.js'), 
 const themeJs = fs.readFileSync(path.join(__dirname, 'theme-controls.js'), 'utf8');
 const drawerJs = fs.readFileSync(path.join(__dirname, 'drawer-manager.js'), 'utf8');
 const helperJs = fs.readFileSync(path.join(__dirname, 'ui-helpers.js'), 'utf8');
+const configJs = fs.readFileSync(path.join(__dirname, 'config.js'), 'utf8');
+const configLoaderJs = fs.readFileSync(path.join(__dirname, 'config-loader.js'), 'utf8');
 const appJs = [appEntryJs, runtimeJs, themeJs, drawerJs, helperJs].join('\n');
 
 test('move menu keeps hidden state until explicitly opened', () => {
@@ -68,6 +70,14 @@ test('group nav icons disable native image dragging', () => {
   assert.match(css, /\.group-nav-button,\s*\.group-nav-button \*\s*\{[\s\S]*-webkit-user-drag:\s*none;/);
 });
 
+test('icon fallback handling avoids inline event handlers', () => {
+  assert.doesNotMatch(appJs, /onerror=/);
+  assert.match(appJs, /data-fallback-src=/);
+  assert.match(helperJs, /document\.addEventListener\('error', event =>/);
+  assert.match(helperJs, /handleImageFallbackError/);
+  assert.match(helperJs, /setImageFallbackAttributes/);
+});
+
 test('index includes a back-to-top floating button', () => {
   assert.match(html, /id="backToTopBtn"/);
 });
@@ -86,6 +96,19 @@ test('index includes deferred drawer trigger and overlay', () => {
   assert.doesNotMatch(html, /deferredTriggerIconPath/);
   assert.doesNotMatch(html, /id="deferredTriggerCount"/);
   assert.doesNotMatch(html, /deferred-trigger-label/);
+});
+
+test('optional local config is loaded safely before app mount', () => {
+  assert.match(html, /<script src="config\.js"><\/script>/);
+  assert.match(html, /<script src="config-loader\.js"><\/script>/);
+  assert.doesNotMatch(html, /<script src="config\.local\.js"><\/script>/);
+  assert.match(configJs, /LOCAL_LANDING_PAGE_PATTERNS/);
+  assert.match(configJs, /LOCAL_CUSTOM_GROUPS/);
+  assert.match(configLoaderJs, /TabHarborConfigReady/);
+  assert.match(configLoaderJs, /script\.src = 'config\.local\.js'/);
+  assert.match(configLoaderJs, /script\.onerror = \(\) => resolve\(\)/);
+  assert.match(appEntryJs, /TabHarborConfigReady/);
+  assert.match(appEntryJs, /await appConfigReady/);
 });
 
 test('manifest keeps only permissions required by the shipped runtime', () => {
@@ -570,6 +593,6 @@ test('dashboard auto-refreshes when tabs change via background message', () => {
   assert.match(appJs, /setupTabChangeListener/);
   assert.match(appJs, /chrome\.runtime\.onMessage\.addListener/);
   assert.match(appJs, /message\.action === 'tabs-changed'/);
-  assert.match(appJs, /setTimeout.*renderDashboard/);
+  assert.match(appJs, /setTimeout[\s\S]*renderDashboard/);
   assert.match(appJs, /__tabRefreshTimeout/);
 });

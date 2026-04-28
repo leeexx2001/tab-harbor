@@ -1064,6 +1064,8 @@ function renderQuickShortcutCard(shortcut) {
   const safeId = themeEscapeHtmlAttribute ? themeEscapeHtmlAttribute(shortcut.id) : shortcut.id.replace(/"/g, '&quot;');
   const safeUrl = themeEscapeHtmlAttribute ? themeEscapeHtmlAttribute(shortcut.url) : shortcut.url.replace(/"/g, '&quot;');
   const customIcon = normalizeShortcutIcon(shortcut.icon);
+  const iconErrorFallback = (customIcon.kind === 'image' || customIcon.kind === 'svg') ? (faviconUrl || fallbackUrl) : fallbackUrl;
+  const safeIconErrorFallback = themeEscapeHtmlAttribute ? themeEscapeHtmlAttribute(iconErrorFallback) : iconErrorFallback.replace(/"/g, '&quot;');
   const primaryIconUrl = customIcon.kind === 'image'
     ? customIcon.value
     : customIcon.kind === 'svg'
@@ -1071,14 +1073,13 @@ function renderQuickShortcutCard(shortcut) {
       : customIcon.kind === 'glyph'
         ? ''
         : faviconUrl;
-  const iconErrorFallback = (customIcon.kind === 'image' || customIcon.kind === 'svg') ? (faviconUrl || fallbackUrl) : fallbackUrl;
   const glyphIcon = customIcon.kind === 'glyph' ? customIcon.value : '';
 
   return `
     <div class="quick-shortcut-card" data-shortcut-id="${safeId}">
       <button class="quick-shortcut-open" type="button" data-action="open-quick-shortcut" data-shortcut-url="${safeUrl}" aria-label="${label}" draggable="false">
         <span class="quick-shortcut-icon-wrap">
-          ${primaryIconUrl ? `<img class="quick-shortcut-icon${customIcon.kind === 'image' ? ' quick-shortcut-icon-custom' : ''}" src="${primaryIconUrl}" alt="" draggable="false" onerror="handleIconError(this, '${iconErrorFallback}')">` : ''}
+          ${primaryIconUrl ? `<img class="quick-shortcut-icon${customIcon.kind === 'image' ? ' quick-shortcut-icon-custom' : ''}" src="${primaryIconUrl}" alt="" draggable="false" data-fallback-src="${safeIconErrorFallback}">` : ''}
           ${glyphIcon ? `<span class="quick-shortcut-custom-glyph" aria-hidden="true">${glyphIcon}</span>` : ''}
           <span class="quick-shortcut-fallback"${primaryIconUrl || glyphIcon ? ' style="display:none"' : ''}>${fallbackLabel}</span>
         </span>
@@ -1367,12 +1368,12 @@ async function renderTabPickerPanel() {
       const isAdded = existingUrls.has(tab.url);
       const title = stripTitleNoise(tab.title) || tab.url;
       const safeTitle = themeEscapeHtmlAttribute(title);
+      const fallbackInitial = (friendlyDomain(tab.url ? new URL(tab.url).hostname : '') || '?')[0] || '?';
       let faviconHtml;
       if (tab.favIconUrl) {
-        faviconHtml = `<img class="tab-picker-favicon" src="${themeEscapeHtmlAttribute(tab.favIconUrl)}" alt="" onerror="this.replaceWith(Object.assign(document.createElement('span'), {className:'tab-picker-favicon-fallback', textContent:((${JSON.stringify(friendlyDomain(tab.url ? new URL(tab.url).hostname : '') || '?')})[0]||'?').toUpperCase()}))">`;
+        faviconHtml = `<img class="tab-picker-favicon" src="${themeEscapeHtmlAttribute(tab.favIconUrl)}" alt="" data-fallback-src=""><span class="tab-picker-favicon-fallback" style="display:none">${fallbackInitial.toUpperCase()}</span>`;
       } else {
-        const initial = (friendlyDomain(tab.url ? new URL(tab.url).hostname : '') || '?')[0] || '?';
-        faviconHtml = `<span class="tab-picker-favicon-fallback">${initial.toUpperCase()}</span>`;
+        faviconHtml = `<span class="tab-picker-favicon-fallback">${fallbackInitial.toUpperCase()}</span>`;
       }
 
       const checkbox = `<input class="tab-picker-checkbox" type="checkbox" ${isSelected ? 'checked' : ''} data-action="toggle-tab-picker-selection" data-tab-id="${tabId}" aria-label="Select ${safeTitle}">`;
