@@ -37,11 +37,13 @@ globalThis.chrome = {
   },
   tabs: {
     group: async (opts) => 0,
+    get: async () => ({ id: 0, groupId: -1, windowId: 0 }),
     ungroup: async () => {},
     query: async (opts) => opts?.groupId != null ? [] : [],
     onAttached: createEventEmitter(),
     onCreated: createEventEmitter(),
     onDetached: createEventEmitter(),
+    onMoved: createEventEmitter(),
     onRemoved: createEventEmitter(),
     onUpdated: createEventEmitter(),
   },
@@ -380,6 +382,33 @@ test('subscribeToChromeTabGroupChanges ignores collapse-only group updates', asy
   globalThis.chrome.tabGroups.onUpdated.emit(501, { collapsed: true });
 
   assert.equal(events.length, 0);
+
+  unsubscribe();
+});
+
+test('subscribeToChromeTabGroupChanges notifies when a grouped tab is moved', async () => {
+  resetChromeGroupState();
+  await saveChromeTabGroupsSetting(true);
+
+  const events = [];
+  globalThis.chrome.tabs.get = async (tabId) => ({
+    id: tabId,
+    groupId: 501,
+    windowId: 1,
+  });
+
+  const unsubscribe = subscribeToChromeTabGroupChanges(event => {
+    events.push(event);
+  });
+
+  globalThis.chrome.tabs.onMoved.emit(42, { windowId: 1, fromIndex: 3, toIndex: 6 });
+
+  await new Promise(resolve => setTimeout(resolve, 0));
+
+  assert.equal(events.length, 1);
+  assert.equal(events[0].source, 'tabs.onMoved');
+  assert.equal(events[0].tabId, 42);
+  assert.equal(events[0].tab.groupId, 501);
 
   unsubscribe();
 });

@@ -145,6 +145,28 @@ const THEMES = {
       '--card-bg': '#fffaf7',
     },
   },
+  midnight: {
+    name: 'Night',
+    meta: 'Dark mode',
+    vars: {
+      '--ink': '#e8e2da',
+      '--paper': '#0c1821',
+      '--warm-gray': '#2a2420',
+      '--muted': '#7a7169',
+      '--accent-amber': '#82aae8',
+      '--accent-sage': '#6b8f75',
+      '--accent-slate': '#6b7f8f',
+      '--accent-rose': '#c46b6b',
+      '--workspace-accent': '#82aae8',
+      '--workspace-accent-soft': '#152535',
+      '--workspace-accent-border': '#3a3430',
+      '--workspace-accent-contrast': '#1a1613',
+      '--status-active': '#4d8f5a',
+      '--status-cooling': '#c4993e',
+      '--status-abandoned': '#c46b6b',
+      '--card-bg': '#142031',
+    },
+  },
 };
 
 let themePreferences = {
@@ -588,9 +610,9 @@ function syncShortcutEditor() {
     ? (themeT ? themeT('shortcutPreviewCustomImageIcon') : 'Custom image icon')
     : shortcutEditorState.iconKind === 'svg'
       ? (themeT ? themeT('shortcutPreviewSvgIcon') : 'SVG icon')
-    : shortcutEditorState.iconKind === 'glyph'
-      ? (themeT ? themeT('shortcutPreviewEmojiIcon') : 'Emoji icon')
-      : (themeT ? themeT('shortcutPreviewWebsiteIcon') : 'Website icon');
+      : shortcutEditorState.iconKind === 'glyph'
+        ? (themeT ? themeT('shortcutPreviewEmojiIcon') : 'Emoji icon')
+        : (themeT ? themeT('shortcutPreviewWebsiteIcon') : 'Website icon');
   const previewMeta = shortcutEditorState.iconKind
     ? (themeT ? themeT('shortcutPreviewHasCustomIcon') : 'Custom icon will replace the site favicon.')
     : (themeT ? themeT('shortcutPreviewNoCustomIcon') : 'Upload or paste an image, or type an emoji.');
@@ -1048,9 +1070,9 @@ function renderQuickShortcutCard(shortcut) {
     ? customIcon.value
     : customIcon.kind === 'svg'
       ? svgToDataUrl(customIcon.value)
-    : customIcon.kind === 'glyph'
-      ? ''
-      : faviconUrl;
+      : customIcon.kind === 'glyph'
+        ? ''
+        : faviconUrl;
   const glyphIcon = customIcon.kind === 'glyph' ? customIcon.value : '';
 
   return `
@@ -1226,7 +1248,7 @@ async function tryShortcutEditorPasteViaExecCommand() {
     let commandWorked = false;
     try {
       commandWorked = document.execCommand('paste');
-    } catch {}
+    } catch { }
 
     setTimeout(() => cleanup(commandWorked), 120);
   });
@@ -1313,16 +1335,16 @@ async function renderTabPickerPanel() {
   const query = tabPickerSearchQuery.trim().toLowerCase();
   const filtered = query
     ? realTabs.filter(t => {
-        const title = (t.title || '').toLowerCase();
-        const url = (t.url || '').toLowerCase();
-        return title.includes(query) || url.includes(query);
-      })
+      const title = (t.title || '').toLowerCase();
+      const url = (t.url || '').toLowerCase();
+      return title.includes(query) || url.includes(query);
+    })
     : realTabs;
 
   const byDomain = new Map();
   for (const tab of filtered) {
     let hostname = '';
-    try { hostname = new URL(tab.url).hostname; } catch {}
+    try { hostname = new URL(tab.url).hostname; } catch { }
     const group = hostname.replace(/^www\./, '') || 'other';
     if (!byDomain.has(group)) byDomain.set(group, []);
     byDomain.get(group).push(tab);
@@ -1346,12 +1368,12 @@ async function renderTabPickerPanel() {
       const isAdded = existingUrls.has(tab.url);
       const title = stripTitleNoise(tab.title) || tab.url;
       const safeTitle = themeEscapeHtmlAttribute(title);
+      const fallbackInitial = (friendlyDomain(tab.url ? new URL(tab.url).hostname : '') || '?')[0] || '?';
       let faviconHtml;
       if (tab.favIconUrl) {
-        faviconHtml = `<img class="tab-picker-favicon" src="${themeEscapeHtmlAttribute(tab.favIconUrl)}" alt="" onerror="this.replaceWith(Object.assign(document.createElement('span'), {className:'tab-picker-favicon-fallback', textContent:((${JSON.stringify(friendlyDomain(tab.url ? new URL(tab.url).hostname : '') || '?')})[0]||'?').toUpperCase()}))">`;
+        faviconHtml = `<img class="tab-picker-favicon" src="${themeEscapeHtmlAttribute(tab.favIconUrl)}" alt="" data-fallback-src=""><span class="tab-picker-favicon-fallback" style="display:none">${fallbackInitial.toUpperCase()}</span>`;
       } else {
-        const initial = (friendlyDomain(tab.url ? new URL(tab.url).hostname : '') || '?')[0] || '?';
-        faviconHtml = `<span class="tab-picker-favicon-fallback">${initial.toUpperCase()}</span>`;
+        faviconHtml = `<span class="tab-picker-favicon-fallback">${fallbackInitial.toUpperCase()}</span>`;
       }
 
       const checkbox = `<input class="tab-picker-checkbox" type="checkbox" ${isSelected ? 'checked' : ''} data-action="toggle-tab-picker-selection" data-tab-id="${tabId}" aria-label="Select ${safeTitle}">`;
@@ -1643,7 +1665,7 @@ document.addEventListener('pointerdown', (e) => {
     height: rect.height,
     moved: false,
   };
-  });
+});
 
 document.addEventListener('pointermove', (e) => {
   if (!quickShortcutDraggedId || !quickShortcutDragState) return;
@@ -1668,11 +1690,11 @@ document.addEventListener('pointerup', async () => {
   const moved = quickShortcutDragState.moved;
   const nextOrderIds = moved
     ? [...quickShortcutDragState.listEl.children]
-        .map(node => {
-          if (node === quickShortcutSlotEl) return quickShortcutDraggedId;
-          return node.dataset?.shortcutId || '';
-        })
-        .filter(Boolean)
+      .map(node => {
+        if (node === quickShortcutSlotEl) return quickShortcutDraggedId;
+        return node.dataset?.shortcutId || '';
+      })
+      .filter(Boolean)
     : [];
   clearQuickShortcutDragState();
 

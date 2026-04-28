@@ -175,9 +175,13 @@ function revealImageFallback(imgEl) {
     sibling.classList.contains('group-nav-fallback') ||
     sibling.classList.contains('chip-favicon-fallback') ||
     sibling.classList.contains('inline-favicon-fallback') ||
-    sibling.classList.contains('quick-shortcut-fallback')
+    sibling.classList.contains('quick-shortcut-fallback') ||
+    sibling.classList.contains('tab-picker-favicon-fallback')
   ) {
-    sibling.style.display = sibling.classList.contains('inline-favicon-fallback') ? 'inline-flex' : 'flex';
+    sibling.style.display = (
+      sibling.classList.contains('inline-favicon-fallback') ||
+      sibling.classList.contains('tab-picker-favicon-fallback')
+    ) ? 'inline-flex' : 'flex';
   }
 }
 

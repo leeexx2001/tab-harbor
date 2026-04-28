@@ -52,6 +52,13 @@
       [chrome.tabs?.onAttached, (tabId, attachInfo) => notifyChromeGroupSubscribers({ source: 'tabs.onAttached', tabId, attachInfo })],
       [chrome.tabs?.onCreated, tab => notifyChromeGroupSubscribers({ source: 'tabs.onCreated', tab })],
       [chrome.tabs?.onDetached, (tabId, detachInfo) => notifyChromeGroupSubscribers({ source: 'tabs.onDetached', tabId, detachInfo })],
+      [chrome.tabs?.onMoved, async (tabId, moveInfo) => {
+        try {
+          const movedTab = await chrome.tabs.get(tabId);
+          if (movedTab?.groupId == null || Number(movedTab.groupId) < 0) return;
+          notifyChromeGroupSubscribers({ source: 'tabs.onMoved', tabId, moveInfo, tab: movedTab });
+        } catch {}
+      }],
       [chrome.tabs?.onRemoved, (tabId, removeInfo) => notifyChromeGroupSubscribers({ source: 'tabs.onRemoved', tabId, removeInfo })],
       [chrome.tabs?.onUpdated, (tabId, changeInfo, tab) => {
         if (changeInfo?.groupId == null) return;
