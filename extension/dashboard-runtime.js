@@ -528,7 +528,6 @@ function scheduleChromeTabGroupsImport() {
       const importedCount = await importChromeNativeGroupsIntoSessionGroups();
       if (typeof setImportMode === 'function') setImportMode(importedCount > 0);
       await renderDashboard();
-      if (typeof setImportMode === 'function') setImportMode(false);
     } finally {
       chromeTabGroupsImportInFlight = false;
     }
@@ -561,7 +560,6 @@ async function applyChromeTabGroupsToggle(nextEnabled) {
   ensureChromeTabGroupsSubscription();
   if (typeof setImportMode === 'function') setImportMode(importedCount > 0);
   await renderDashboard();
-  if (typeof setImportMode === 'function') setImportMode(false);
   showToast(enable
     ? (runtimeT ? runtimeT('toastChromeTabGroupsOn') : 'Chrome tab groups on')
     : (runtimeT ? runtimeT('toastChromeTabGroupsOff') : 'Chrome tab groups off'));
@@ -1829,6 +1827,8 @@ document.addEventListener('click', async (e) => {
     window.__suppressAutoRefresh = true;
     
     await closeTabOutDupes();
+    await renderDashboard();
+    updateBackToTopVisibility();
     playCloseSound();
     const banner = document.getElementById('tabOutDupeBanner');
     if (banner) {
@@ -2845,7 +2845,6 @@ async function initializeDashboardRuntime() {
   }
   ensureChromeTabGroupsSubscription();
   await renderDashboard();
-  if (typeof setImportMode === 'function') setImportMode(false);
   updateBackToTopVisibility();
 
   // Listen for tab change notifications from background script

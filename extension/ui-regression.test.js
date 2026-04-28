@@ -596,3 +596,29 @@ test('dashboard auto-refreshes when tabs change via background message', () => {
   assert.match(appJs, /setTimeout[\s\S]*renderDashboard/);
   assert.match(appJs, /__tabRefreshTimeout/);
 });
+
+test('closing duplicate Tab Harbor tabs rerenders without dropping chrome tab group mode', () => {
+  assert.match(
+    runtimeJs,
+    /if \(action === 'close-tabout-dupes'\) \{[\s\S]*__suppressAutoRefresh = true;[\s\S]*await closeTabOutDupes\(\);[\s\S]*await renderDashboard\(\);[\s\S]*updateBackToTopVisibility\(\);/
+  );
+});
+
+test('chrome tab group mode stays active while the toggle is on', () => {
+  assert.match(
+    runtimeJs,
+    /async function applyChromeTabGroupsToggle\(nextEnabled\) \{[\s\S]*chromeTabGroupsEnabled = enable;[\s\S]*if \(typeof setImportMode === 'function'\) setImportMode\(importedCount > 0\);[\s\S]*await renderDashboard\(\);/
+  );
+  assert.doesNotMatch(
+    runtimeJs,
+    /applyChromeTabGroupsToggle[\s\S]*setImportMode\(false\)/
+  );
+  assert.doesNotMatch(
+    runtimeJs,
+    /scheduleChromeTabGroupsImport[\s\S]*setImportMode\(false\)/
+  );
+  assert.doesNotMatch(
+    runtimeJs,
+    /initializeDashboardRuntime[\s\S]*setImportMode\(false\)/
+  );
+});
