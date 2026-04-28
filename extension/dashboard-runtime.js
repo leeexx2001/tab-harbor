@@ -396,6 +396,25 @@ function getChromeSyncGroups(groups = domainGroups) {
  * Reads all currently open browser tabs directly from Chrome.
  * Sets the extensionId flag so we can identify Tab Harbor's own pages.
  */
+
+/* ----------------------------------------------------------------
+   Hitokoto helper
+   ---------------------------------------------------------------- */
+
+async function fetchHitokoto(timeoutMs = 3000) {
+  try {
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), timeoutMs);
+    const response = await fetch('https://v1.hitokoto.cn/', { signal: controller.signal });
+    clearTimeout(timeoutId);
+    if (!response || !response.ok) return null;
+    const data = await response.json();
+    return data || null;
+  } catch (err) {
+    return null;
+  }
+}
+
 async function fetchOpenTabs() {
   try {
     const extensionId = chrome.runtime.id;
@@ -1562,7 +1581,13 @@ function renderGroupNavArea(groups) {
           <label class="theme-menu-toggle-label">
             <input type="checkbox" data-action="toggle-chrome-tab-groups"${chromeTabGroupsEnabled ? ' checked' : ''} aria-label="${runtimeT ? runtimeT('chromeTabGroupsLabel') : 'Chrome tab groups'}">
             <span class="theme-menu-toggle-slider"></span>
-            <span class="theme-menu-label">${runtimeT ? runtimeT('chromeTabGroupsLabel') : 'Chrome tab groups'}</span>
+            <span class="theme-menu-label theme-menu-toggle-text">${runtimeT ? runtimeT('chromeTabGroupsLabel') : 'Chrome tab groups'}</span>
+          </label>
+        </div>
+        <div class="theme-menu-section">
+          <label class="theme-menu-toggle-label theme-menu-toggle-button-row">
+            <button class="theme-toggle-switch ${(typeof themePreferences !== 'undefined' && themePreferences.hitokotoEnabled !== false) ? 'is-active' : ''}" type="button" data-action="toggle-hitokoto" aria-pressed="${(typeof themePreferences !== 'undefined' && themePreferences.hitokotoEnabled !== false) ? 'true' : 'false'}" aria-label="${runtimeT ? runtimeT('hitokotoLabel') : '一言'}"></button>
+            <span class="theme-menu-label theme-menu-toggle-text">${runtimeT ? runtimeT('hitokotoLabel') : '一言'}</span>
           </label>
         </div>
         <input type="file" id="themeBackgroundInput" accept="image/*" hidden>
@@ -1591,6 +1616,28 @@ async function renderStaticDashboard() {
   const dateEl     = document.getElementById('dateDisplay');
   if (greetingEl) greetingEl.textContent = getGreeting();
   if (dateEl)     dateEl.textContent     = getDateDisplay();
+
+  // --- Hitokoto (一言) ---
+  const hitokotoEnabled = typeof themePreferences !== 'undefined' ? themePreferences.hitokotoEnabled : true;
+  const hitokotoEl     = document.getElementById('hitokoto');
+  const hitokotoTextEl = document.getElementById('hitokotoText');
+  const hitokotoFromEl = document.getElementById('hitokotoFrom');
+  if (hitokotoEnabled && hitokotoEl && hitokotoTextEl && hitokotoFromEl) {
+    try {
+      const data = await fetchHitokoto();
+      if (data) {
+        hitokotoTextEl.textContent = data.hitokoto;
+        const from = [data.from_who, data.from].filter(Boolean).join(' · ');
+        hitokotoFromEl.textContent = from ? ` — ${from}` : '';
+        hitokotoEl.style.display = '';
+      }
+    } catch (_e) {
+      // Silently fail — hitokoto is a nice-to-have, not critical
+    }
+  } else if (hitokotoEl) {
+    hitokotoEl.style.display = 'none';
+  }
+
   renderThemeMenu();
   await renderQuickShortcuts();
 
@@ -1913,6 +1960,34 @@ document.addEventListener('click', async (e) => {
       setTimeout(() => { banner.style.display = 'none'; banner.style.opacity = '1'; }, 400);
     }
     showToast(runtimeT ? runtimeT('toastClosedExtraTabHarborTabs') : 'Closed extra Tab Harbor tabs');
+    return;
+  }
+
+  if (action === 'toggle-hitokoto') {
+    const nextEnabled = !(typeof themePreferences !== 'undefined' && themePreferences.hitokotoEnabled);
+    await saveThemePreferences({ hitokotoEnabled: nextEnabled });
+    const hitokotoEl = document.getElementById('hitokoto');
+    const hitokotoTextEl = document.getElementById('hitokotoText');
+    const hitokotoFromEl = document.getElementById('hitokotoFrom');
+    if (hitokotoEl) hitokotoEl.style.display = nextEnabled ? '' : 'none';
+    if (nextEnabled && hitokotoTextEl && hitokotoFromEl) {
+      // Re-fetch hitokoto when turning back on (with timeout)
+      fetchHitokoto().then(data => {
+        if (!data) return;
+        hitokotoTextEl.textContent = data.hitokoto;
+        const from = [data.from_who, data.from].filter(Boolean).join(' · ');
+        hitokotoFromEl.textContent = from ? ` — ${from}` : '';
+      }).catch(() => { /* silently fail */ });
+    } else if (!nextEnabled && hitokotoTextEl && hitokotoFromEl) {
+      hitokotoTextEl.textContent = '';
+      hitokotoFromEl.textContent = '';
+    }
+    // Sync toggle switch visual state (renderThemeMenu does not know about this switch)
+    const toggleSwitch = document.querySelector('[data-action="toggle-hitokoto"]');
+    if (toggleSwitch) {
+      toggleSwitch.classList.toggle('is-active', nextEnabled);
+      toggleSwitch.setAttribute('aria-pressed', String(nextEnabled));
+    }
     return;
   }
 

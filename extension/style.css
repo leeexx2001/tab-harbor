@@ -156,6 +156,26 @@ body.theme-tone-dark::before {
   transform: translateY(1px);
 }
 
+.hitokoto {
+  margin-top: 10px;
+  font-family: 'Libre Caslon Display', serif;
+  font-size: 14px;
+  line-height: 1.6;
+  color: color-mix(in srgb, var(--muted) 85%, var(--ink) 15%);
+  max-width: 520px;
+}
+
+.hitokoto-text {
+  font-style: italic;
+}
+
+.hitokoto-from {
+  font-size: 12px;
+  color: var(--muted);
+  font-style: normal;
+  white-space: nowrap;
+}
+
 .header-search {
   margin-top: 14px;
   width: 100%;
@@ -879,6 +899,23 @@ body.theme-tone-dark .deferred-shell {
   cursor: pointer;
 }
 
+.theme-menu-toggle-text {
+  padding-top: 0;
+  flex: 1 1 auto;
+}
+
+.theme-menu-toggle-button-row {
+  cursor: default;
+}
+
+.theme-menu-toggle-button-row .theme-toggle-switch {
+  border: 1px solid color-mix(in srgb, var(--workspace-accent-border) 40%, transparent);
+}
+
+.theme-menu-toggle-button-row .theme-menu-label {
+  cursor: default;
+}
+
 /* ---- Language options ---- */
 .theme-language-options {
   display: flex;
@@ -916,6 +953,40 @@ body.theme-tone-dark .deferred-shell {
 }
 
 /* ---- Tab cleanup banner ---- */
+.theme-toggle-switch {
+  position: relative;
+  width: 36px;
+  height: 20px;
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--workspace-accent-border) 40%, var(--warm-gray) 60%);
+  border: none;
+  cursor: pointer;
+  transition: background 0.2s ease;
+  flex-shrink: 0;
+  padding: 0;
+}
+
+.theme-toggle-switch::after {
+  content: '';
+  position: absolute;
+  top: 2px;
+  left: 2px;
+  width: 16px;
+  height: 16px;
+  border-radius: 999px;
+  background: var(--card-bg);
+  box-shadow: 0 1px 3px color-mix(in srgb, var(--ink) 12%, transparent);
+  transition: transform 0.2s ease;
+}
+
+.theme-toggle-switch.is-active {
+  background: var(--accent-sage);
+}
+
+.theme-toggle-switch.is-active::after {
+  transform: translateX(16px);
+}
+
 .tab-cleanup-banner {
   background: linear-gradient(
     135deg,
@@ -2664,6 +2735,9 @@ footer { animation: fadeUp 0.5s ease 0.65s both; }
   .header-title-row {
     justify-content: flex-start;
     gap: 12px;
+  }
+  .hitokoto {
+    max-width: 100%;
   }
   .quick-tabs-grid {
     gap: 12px 10px;

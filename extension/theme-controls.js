@@ -240,6 +240,7 @@ let themePreferences = {
   paletteId: 'paper',
   customBackground: '',
   surfaceOpacity: 14,
+  hitokotoEnabled: true,
 };
 
 let systemThemeMediaQuery = null;
@@ -260,6 +261,7 @@ function normalizeThemePreferences(input) {
     paletteId: VALID_THEME_PALETTES.has(rawPaletteId) ? rawPaletteId : 'paper',
     customBackground: typeof next.customBackground === 'string' ? next.customBackground : '',
     surfaceOpacity,
+    hitokotoEnabled: next.hitokotoEnabled !== false,
   };
 }
 
