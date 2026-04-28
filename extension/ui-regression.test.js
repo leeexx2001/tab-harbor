@@ -509,6 +509,12 @@ test('interactive controls keep button semantics and reduced-motion support', ()
   assert.match(css, /grid-template-columns:\s*repeat\(auto-fit, minmax\(128px, 1fr\)\);/);
 });
 
+test('quick shortcuts overwrite the current Tab Harbor tab instead of focusing another tab or opening a new one', () => {
+  assert.match(runtimeJs, /async function navigateCurrentTabToUrl\(url\)\s*\{[\s\S]*chrome\.tabs\.getCurrent\(\)[\s\S]*chrome\.tabs\.update\(currentTab\.id,\s*\{\s*url,\s*active:\s*true\s*\}\)[\s\S]*chrome\.tabs\.query\(\{\s*active:\s*true,\s*currentWindow:\s*true,\s*\}\)[\s\S]*chrome\.tabs\.update\(activeTab\.id,\s*\{\s*url,\s*active:\s*true\s*\}\)/);
+  assert.match(runtimeJs, /async function openOrFocusUrl\(url\)\s*\{\s*if \(!url\) return false;\s*await navigateCurrentTabToUrl\(url\);\s*return true;\s*\}/);
+  assert.match(runtimeJs, /const fallbackUrl = `https:\/\/www\.google\.com\/search\?q=\$\{encodeURIComponent\(text\)\}`;\s*await navigateCurrentTabToUrl\(fallbackUrl\);/);
+});
+
 test('keyboard focus receives explicit visible treatment', () => {
   const css = fs.readFileSync(path.join(__dirname, 'style.css'), 'utf8');
 

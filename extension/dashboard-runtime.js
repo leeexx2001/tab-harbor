@@ -785,11 +785,29 @@ async function focusTab(url) {
   return true;
 }
 
+async function navigateCurrentTabToUrl(url) {
+  if (!url) return false;
+
+  const currentTab = await chrome.tabs.getCurrent();
+  if (currentTab?.id) {
+    await chrome.tabs.update(currentTab.id, { url, active: true });
+    return true;
+  }
+
+  const [activeTab] = await chrome.tabs.query({
+    active: true,
+    currentWindow: true,
+  });
+  if (!activeTab?.id) return false;
+
+  await chrome.tabs.update(activeTab.id, { url, active: true });
+  return true;
+}
+
 async function openOrFocusUrl(url) {
-  const focused = await focusTab(url);
-  if (focused) return true;
-  await chrome.tabs.create({ url });
-  return false;
+  if (!url) return false;
+  await navigateCurrentTabToUrl(url);
+  return true;
 }
 
 async function runDefaultSearch(query) {
@@ -805,7 +823,7 @@ async function runDefaultSearch(query) {
   }
 
   const fallbackUrl = `https://www.google.com/search?q=${encodeURIComponent(text)}`;
-  await chrome.tabs.create({ url: fallbackUrl });
+  await navigateCurrentTabToUrl(fallbackUrl);
 }
 
 /**
